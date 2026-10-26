@@ -85,15 +85,98 @@ def render_scene_intelligence_cards(narrative: FullVideoNarrative) -> None:
             st.markdown(f'<div class="palette-container">{swatches}</div>', unsafe_allow_html=True)
 
 
+def render_ai_cockpit_status_bar() -> None:
+    """Renders cybernetic telemetry status bar."""
+    st.markdown(
+        """
+        <div class="ai-cockpit-status-bar">
+            <div class="ai-status-item">
+                <span class="ai-pulse-dot"></span>
+                <span>Neural Vision Core v2.4 Online</span>
+            </div>
+            <div class="ai-status-item">
+                <span class="ai-pulse-dot cyan"></span>
+                <span>120 FPS Scanner Armed</span>
+            </div>
+            <div class="ai-status-item">
+                <span class="ai-pulse-dot indigo"></span>
+                <span>Zero-Cloud Retention Enclave</span>
+            </div>
+            <div class="ai-status-item" style="color: #64748b;">
+                <span>Container: MP4 • MOV • MKV • WEBM • AVI</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_brand_header() -> None:
-    """Renders the top branding header."""
+    """Renders the top branding header with cyberpunk badges."""
     st.markdown(
         """
         <div class="clipmind-brand-header">
-            <div class="clipmind-logo-badge">CM</div>
-            <div class="clipmind-header-text">
-                <h1>ClipMind AI</h1>
-                <p>Scene-Aware Video Summarization and Keyframe Extraction Platform</p>
+            <div class="clipmind-brand-left">
+                <div class="clipmind-logo-badge">CM</div>
+                <div class="clipmind-header-text">
+                    <h1>ClipMind AI</h1>
+                    <p>Scene-Aware Video Summarization and Keyframe Extraction Platform</p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <span class="badge-pill badge-standard">⚡ GPU-Independent</span>
+                <span class="badge-pill badge-extended">🛡️ Zero-Leak Enclave</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_landing_showcase() -> None:
+    """Renders the high-impact AI landing showcase and capabilities matrix."""
+    st.markdown(
+        """
+        <div class="landing-hero-box">
+            <span class="hero-pill-tag">⚡ Automated Video Intelligence</span>
+            <div class="hero-headline">
+                Transform Any Video into Precise Scenes, Keyframes & Video Cuts
+            </div>
+            <div class="hero-subhead">
+                ClipMind AI leverages dual-engine scene detection, adaptive lighting compensation,
+                and neural color profiling to convert raw video into actionable video cuts,
+                storyboards, and executive summaries.
+            </div>
+            <div class="pipeline-stepper">
+                <div class="step-item"><span class="step-num">01</span> Ingestion & Header Verification</div>
+                <span class="step-arrow">➔</span>
+                <div class="step-item"><span class="step-num">02</span> Dual-Engine Scene Scanner</div>
+                <span class="step-arrow">➔</span>
+                <div class="step-item"><span class="step-num">03</span> Neural Keyframe Storyboard</div>
+                <span class="step-arrow">➔</span>
+                <div class="step-item"><span class="step-num">04</span> Lossless Video Cuts & Export</div>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon-box">⚡</div>
+                    <div class="feature-title">Hybrid Precision Cuts</div>
+                    <div class="feature-desc">Combines adaptive rolling threshold with HSV color diff to detect hard cuts, pans, and lighting transitions.</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon-box">🎬</div>
+                    <div class="feature-title">Lossless MP4 Clipping</div>
+                    <div class="feature-desc">Slices video into frame-accurate individual scene video clips ready for immediate in-browser playback.</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon-box">🎨</div>
+                    <div class="feature-title">Neural Aesthetic Palette</div>
+                    <div class="feature-desc">K-means color clustering extracts exact hex palettes, lighting key, and motion energy gauges for each scene.</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon-box">📦</div>
+                    <div class="feature-title">Production Intelligence</div>
+                    <div class="feature-desc">Instant export packages including Video Clips ZIP, Keyframes ZIP, CSV manifests, and JSON/Markdown schemas.</div>
+                </div>
             </div>
         </div>
         """,

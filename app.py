@@ -29,9 +29,11 @@ from clipmind.security import (
     validate_file_extension,
 )
 from clipmind.ui.components import (
+    render_ai_cockpit_status_bar,
     render_brand_header,
     render_full_video_narrative_hero,
     render_keyframe_gallery,
+    render_landing_showcase,
     render_metadata_cards,
     render_scene_clips_gallery,
     render_scene_intelligence_cards,
@@ -98,6 +100,8 @@ def create_demo_synthetic_video(target_path: Path) -> Path:
 
 def main() -> None:
     """Main application routine."""
+    # Top AI Cockpit Telemetry Strip
+    render_ai_cockpit_status_bar()
     render_brand_header()
 
     # Periodic background cleanup of stale jobs
@@ -105,6 +109,10 @@ def main() -> None:
         cleanup_stale_jobs(max_age_seconds=3600)
     except Exception as e:
         logger.debug("Background stale job cleanup: %s", e)
+
+    # Initialize demo trigger state if needed
+    if "trigger_demo" not in st.session_state:
+        st.session_state["trigger_demo"] = False
 
     # Sidebar: Configuration & Controls
     with st.sidebar:
@@ -230,34 +238,55 @@ def main() -> None:
             """
         )
 
-    # Main Area: Upload & Execution
-    st.markdown("#### 📤 Upload Video for Scene Analysis")
-    uploaded_file = st.file_uploader(
-        "Select a video file (MP4, MOV, AVI, MKV, WEBM)",
-        type=["mp4", "mov", "avi", "mkv", "webm"],
-        help=f"Maximum file size: {config.max_upload_size_mb} MB. Maximum duration: {config.max_video_duration_seconds // 60} mins.",
-    )
+    # Check if demo was triggered
+    load_demo = st.session_state.get("trigger_demo", False)
 
-    demo_btn_col1, demo_btn_col2 = st.columns([1, 4])
-    load_demo = False
-    with demo_btn_col1:
-        if st.button("✨ Load Demo Video", help="Generate and analyze a synthetic 4-scene video immediately"):
-            load_demo = True
+    # Main Area: Landing or Upload
+    if "analysis_results" not in st.session_state and not load_demo:
+        # Render high-impact landing showcase
+        render_landing_showcase()
 
-    if not uploaded_file and not load_demo and "analysis_results" not in st.session_state:
-        st.markdown(
-            """
-            <div class="notice-card">
-                <b>Welcome to ClipMind AI!</b><br>
-                Upload a video to analyze scene transitions, extract crisp timestamped keyframes,
-                view an interactive visual timeline, and download comprehensive analysis packages (ZIP, CSV, JSON, Markdown).
-                <br><br>
-                <i>No video handy? Click <b>Load Demo Video</b> above to test the entire pipeline in seconds.</i>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        return
+        st.markdown("### 🚀 Launch Analysis Engine")
+        col_up, col_demo = st.columns([3, 2])
+
+        with col_up:
+            st.markdown("##### 📤 Drag & Drop Video File")
+            uploaded_file = st.file_uploader(
+                "Upload MP4, MOV, AVI, MKV, or WEBM",
+                type=["mp4", "mov", "avi", "mkv", "webm"],
+                help=f"Maximum size: {config.max_upload_size_mb} MB. Maximum duration: {config.max_video_duration_seconds // 60} mins.",
+                key="main_video_uploader",
+            )
+
+        with col_demo:
+            st.markdown("##### ⚡ Instant Evaluation Sandbox")
+            st.markdown(
+                """
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+                    <div style="font-size: 0.9rem; font-weight: 700; color: #f8fafc; margin-bottom: 4px;">Zero Setup Required</div>
+                    <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.4;">
+                        Test the complete multi-scene hybrid cut detector, neural palette clustering, and video clip slicer immediately.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("✨ Launch Instant Demo Experience", type="primary", use_container_width=True):
+                st.session_state["trigger_demo"] = True
+                st.rerun()
+
+        if not uploaded_file:
+            return
+    else:
+        uploaded_file = None
+        if "analysis_results" in st.session_state:
+            # Action bar above results
+            r_col1, r_col2 = st.columns([5, 1])
+            with r_col2:
+                if st.button("🔄 New Video", help="Reset workspace and analyze another video"):
+                    st.session_state.pop("analysis_results", None)
+                    st.session_state["trigger_demo"] = False
+                    st.rerun()
 
     # Trigger processing
     if uploaded_file or load_demo:

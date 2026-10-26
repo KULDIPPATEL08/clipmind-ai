@@ -2,20 +2,21 @@
 
 MAIN_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
     --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
-    --bg-main: #090d16;
-    --bg-glass: rgba(18, 24, 38, 0.72);
-    --bg-glass-elevated: rgba(26, 35, 54, 0.85);
-    --border-glass: rgba(255, 255, 255, 0.08);
+    --bg-main: #060911;
+    --bg-glass: rgba(15, 23, 42, 0.75);
+    --bg-glass-elevated: rgba(24, 34, 58, 0.85);
+    --border-glass: rgba(255, 255, 255, 0.09);
     --border-accent: rgba(99, 102, 241, 0.5);
     --neon-indigo: #6366f1;
     --neon-cyan: #06b6d4;
     --neon-emerald: #10b981;
     --neon-pink: #ec4899;
+    --neon-amber: #f59e0b;
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
@@ -25,12 +26,71 @@ html, body, [class*="css"] {
     font-family: var(--font-sans) !important;
 }
 
+/* Background Cyber Grid */
+.stApp {
+    background-color: var(--bg-main) !important;
+    background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.07) 0%, transparent 40%),
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px) !important;
+    background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px !important;
+}
+
+/* AI Cockpit Status Strip */
+.ai-cockpit-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 16px;
+    background: rgba(10, 15, 28, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-glass);
+    border-radius: 999px;
+    margin-bottom: 20px;
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.ai-status-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ai-pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--neon-emerald);
+    box-shadow: 0 0 10px var(--neon-emerald);
+    animation: aiPulse 2s infinite ease-in-out;
+}
+
+.ai-pulse-dot.cyan {
+    background-color: var(--neon-cyan);
+    box-shadow: 0 0 10px var(--neon-cyan);
+}
+
+.ai-pulse-dot.indigo {
+    background-color: var(--neon-indigo);
+    box-shadow: 0 0 10px var(--neon-indigo);
+}
+
+@keyframes aiPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
 /* Futuristic Brand Header */
 .clipmind-brand-header {
     display: flex;
     align-items: center;
-    gap: 18px;
-    padding: 24px 0 16px 0;
+    justify-content: space-between;
+    padding: 16px 0 16px 0;
     margin-bottom: 24px;
     border-bottom: 1px solid var(--border-glass);
     position: relative;
@@ -41,29 +101,35 @@ html, body, [class*="css"] {
     position: absolute;
     bottom: -1px;
     left: 0;
-    width: 140px;
+    width: 180px;
     height: 2px;
     background: linear-gradient(90deg, #6366f1, #06b6d4, transparent);
-    box-shadow: 0 0 12px #6366f1;
+    box-shadow: 0 0 14px #6366f1;
+}
+
+.clipmind-brand-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 .clipmind-logo-badge {
     background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
     color: white;
-    font-weight: 800;
-    font-size: 22px;
-    padding: 10px 16px;
+    font-weight: 900;
+    font-size: 20px;
+    padding: 9px 15px;
     border-radius: 12px;
     box-shadow: 0 0 25px rgba(79, 70, 229, 0.45);
     letter-spacing: 0.05em;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .clipmind-header-text h1 {
-    font-size: 2.2rem !important;
+    font-size: 2.1rem !important;
     font-weight: 800 !important;
     margin: 0 !important;
     background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
@@ -73,10 +139,158 @@ html, body, [class*="css"] {
 }
 
 .clipmind-header-text p {
-    font-size: 0.98rem !important;
+    font-size: 0.92rem !important;
     color: #94a3b8 !important;
-    margin: 4px 0 0 0 !important;
+    margin: 3px 0 0 0 !important;
     letter-spacing: -0.01em;
+}
+
+/* Landing Page Hero Section */
+.landing-hero-box {
+    background: linear-gradient(135deg, rgba(20, 28, 48, 0.85) 0%, rgba(10, 16, 30, 0.95) 100%);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 20px;
+    padding: 36px 40px;
+    margin: 16px 0 28px 0;
+    box-shadow: 0 24px 60px -15px rgba(0, 0, 0, 0.6), 0 0 35px rgba(99, 102, 241, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.landing-hero-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.hero-pill-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    color: #a5b4fc;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-bottom: 16px;
+    box-shadow: 0 0 16px rgba(99, 102, 241, 0.2);
+}
+
+.hero-headline {
+    font-size: 2.35rem;
+    font-weight: 900;
+    line-height: 1.22;
+    color: #ffffff;
+    margin-bottom: 12px;
+    letter-spacing: -0.03em;
+}
+
+.hero-subhead {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #94a3b8;
+    max-width: 820px;
+    margin-bottom: 24px;
+}
+
+/* Feature Capabilities Grid */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin: 24px 0 12px 0;
+}
+
+.feature-card {
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-glass);
+    border-radius: 14px;
+    padding: 20px 22px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(99, 102, 241, 0.45);
+    box-shadow: 0 16px 36px rgba(99, 102, 241, 0.2);
+}
+
+.feature-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(6, 182, 212, 0.2));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    margin-bottom: 12px;
+}
+
+.feature-title {
+    font-size: 1.0rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+}
+
+.feature-desc {
+    font-size: 0.84rem;
+    color: #94a3b8;
+    line-height: 1.5;
+}
+
+/* Pipeline Stepper */
+.pipeline-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10, 15, 28, 0.6);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin: 24px 0;
+    gap: 8px;
+    overflow-x: auto;
+}
+
+.step-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    white-space: nowrap;
+}
+
+.step-num {
+    background: rgba(99, 102, 241, 0.2);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    color: #a5b4fc;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.step-arrow {
+    color: #475569;
+    font-size: 0.9rem;
 }
 
 /* Glassmorphic Metric KPI Cards */
@@ -107,36 +321,36 @@ div[data-testid="stMetricLabel"] {
 
 div[data-testid="stMetricValue"] {
     color: var(--text-primary) !important;
-    font-weight: 700 !important;
-    font-size: 1.6rem !important;
+    font-weight: 800 !important;
+    font-size: 1.65rem !important;
 }
 
 /* Next-Level Narrative Glass Card */
 .narrative-hero-card {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+    background: linear-gradient(135deg, rgba(24, 34, 58, 0.85) 0%, rgba(12, 18, 32, 0.95) 100%);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    border-radius: 16px;
-    padding: 24px 28px;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 18px;
+    padding: 26px 30px;
     margin: 20px 0 28px 0;
-    box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.12);
+    box-shadow: 0 18px 45px -10px rgba(0, 0, 0, 0.55), 0 0 24px rgba(99, 102, 241, 0.15);
 }
 
 .narrative-title {
-    font-size: 1.35rem;
-    font-weight: 700;
+    font-size: 1.4rem;
+    font-weight: 800;
     color: #ffffff;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
 .narrative-synopsis {
-    font-size: 1.0rem;
-    line-height: 1.65;
+    font-size: 1.02rem;
+    line-height: 1.7;
     color: #cbd5e1;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
 }
 
 /* Palette Swatches */
@@ -151,47 +365,42 @@ div[data-testid="stMetricValue"] {
 .palette-chip {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
+    gap: 7px;
+    padding: 6px 14px;
     border-radius: 8px;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-family: var(--font-mono);
-    font-weight: 600;
+    font-weight: 700;
     color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .swatch-circle {
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
     border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
     display: inline-block;
 }
 
 /* Motion Energy Gauge */
-.motion-gauge-box {
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid var(--border-glass);
-    border-radius: 10px;
-    padding: 10px 14px;
-    margin-top: 10px;
-}
-
 .motion-bar-track {
     width: 100%;
-    height: 8px;
+    height: 9px;
     background-color: rgba(255, 255, 255, 0.08);
     border-radius: 999px;
     overflow: hidden;
     margin-top: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .motion-bar-fill {
     height: 100%;
     border-radius: 999px;
     background: linear-gradient(90deg, #10b981 0%, #06b6d4 50%, #f59e0b 80%, #ef4444 100%);
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
     transition: width 0.4s ease;
 }
 
@@ -199,13 +408,13 @@ div[data-testid="stMetricValue"] {
 .timeline-track {
     display: flex;
     width: 100%;
-    height: 42px;
-    border-radius: 10px;
+    height: 44px;
+    border-radius: 12px;
     overflow: hidden;
-    background-color: rgba(15, 23, 42, 0.85);
+    background-color: rgba(10, 16, 30, 0.9);
     border: 1px solid var(--border-glass);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    margin: 16px 0 10px 0;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+    margin: 18px 0 10px 0;
 }
 
 .timeline-segment {
@@ -213,18 +422,18 @@ div[data-testid="stMetricValue"] {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-weight: 700;
     color: #ffffff;
     cursor: pointer;
-    transition: all 0.2s ease;
-    border-right: 1px solid rgba(0, 0, 0, 0.4);
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    border-right: 1px solid rgba(0, 0, 0, 0.45);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 .timeline-segment:hover {
-    filter: brightness(1.25) saturate(1.2);
-    transform: scaleY(1.06);
+    filter: brightness(1.3) saturate(1.25);
+    transform: scaleY(1.08);
     z-index: 2;
 }
 
@@ -232,10 +441,10 @@ div[data-testid="stMetricValue"] {
 .badge-pill {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
+    gap: 6px;
+    padding: 4px 12px;
     border-radius: 999px;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 600;
 }
 
@@ -257,31 +466,37 @@ div[data-testid="stMetricValue"] {
     border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
-/* Scene Card Container */
-.scene-detail-card {
-    background: var(--bg-glass);
-    border: 1px solid var(--border-glass);
-    border-radius: 12px;
-    padding: 16px 18px;
-    margin-bottom: 14px;
-    transition: border-color 0.2s ease;
-}
-
-.scene-detail-card:hover {
-    border-color: rgba(99, 102, 241, 0.4);
-}
-
-/* Buttons Styling */
-button[kind="primary"], div.stButton > button {
-    border-radius: 10px !important;
+/* Streamlit Tabs Styling */
+div[data-testid="stTabs"] button[role="tab"] {
+    font-family: var(--font-sans) !important;
+    font-size: 0.92rem !important;
     font-weight: 600 !important;
-    letter-spacing: 0.02em !important;
+    color: var(--text-muted) !important;
+    background: transparent !important;
+    border-radius: 8px 8px 0 0 !important;
+    padding: 10px 18px !important;
     transition: all 0.2s ease !important;
 }
 
-div.stButton > button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35) !important;
+div[data-testid="stTabs"] button[aria-selected="true"] {
+    color: #ffffff !important;
+    border-bottom: 2px solid var(--neon-indigo) !important;
+    text-shadow: 0 0 12px rgba(99, 102, 241, 0.6);
+}
+
+/* Primary and Download Button Styling */
+button[kind="primary"], div.stButton > button, div.stDownloadButton > button {
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+}
+
+div.stButton > button:hover, div.stDownloadButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4) !important;
+    border-color: rgba(99, 102, 241, 0.8) !important;
 }
 </style>
 """
