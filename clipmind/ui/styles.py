@@ -498,5 +498,515 @@ div.stButton > button:hover, div.stDownloadButton > button:hover {
     box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4) !important;
     border-color: rgba(99, 102, 241, 0.8) !important;
 }
+
+/* =========================================================================
+   🎞️ PHYSICAL FILMSTRIP SCISSORS CUTTING ANIMATION & CLIP CARDS
+   ========================================================================= */
+
+@keyframes scissorSlice {
+    0% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.15) rotate(-15deg); }
+    50% { transform: scale(0.95) rotate(12deg); filter: drop-shadow(0 0 8px #ec4899); }
+    75% { transform: scale(1.1) rotate(-6deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes bladeFlash {
+    0% { left: -30%; opacity: 0; }
+    50% { opacity: 1; }
+    100% { left: 130%; opacity: 0; }
+}
+
+@keyframes sprocketScroll {
+    from { background-position: 0 0; }
+    to { background-position: 48px 0; }
+}
+
+/* Filmstrip Perforation Header & Footer */
+.filmstrip-sprockets {
+    height: 14px;
+    width: 100%;
+    background-color: #0b0f19;
+    background-image: 
+        radial-gradient(ellipse at center, rgba(255, 255, 255, 0.22) 32%, transparent 36%);
+    background-size: 16px 14px;
+    background-repeat: repeat-x;
+    border-radius: 6px;
+    margin: 4px 0;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.cutting-machine-banner {
+    background: linear-gradient(135deg, rgba(20, 28, 48, 0.95) 0%, rgba(10, 16, 28, 0.98) 100%);
+    border: 1px solid rgba(236, 72, 153, 0.35);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin: 16px 0 24px 0;
+    box-shadow: 0 12px 35px rgba(236, 72, 153, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.cutting-machine-banner::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -30%;
+    width: 25%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(236, 72, 153, 0.25), transparent);
+    animation: bladeFlash 3.5s infinite ease-in-out;
+    pointer-events: none;
+}
+
+.cutter-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 6px;
+}
+
+.scissor-icon-animated {
+    font-size: 1.6rem;
+    display: inline-block;
+    animation: scissorSlice 2.4s infinite ease-in-out;
+}
+
+.cutter-subhead {
+    font-size: 0.88rem;
+    color: #94a3b8;
+    line-height: 1.5;
+}
+
+/* Individual Film Clip Card */
+.film-clip-card {
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+.film-clip-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(236, 72, 153, 0.5);
+    box-shadow: 0 12px 32px rgba(236, 72, 153, 0.2);
+}
+
+.clip-badge-cut {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    background: rgba(236, 72, 153, 0.15);
+    border: 1px solid rgba(236, 72, 153, 0.4);
+    color: #f472b6;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+/* =========================================================================
+   🎛️ PRO IDE STUDIO INSPECTOR SIDEBAR
+   ========================================================================= */
+
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #070b14 0%, #05080f 100%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+.studio-inspector-header {
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+}
+
+.studio-title {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #f8fafc;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.studio-telemetry {
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+    color: var(--neon-cyan);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* =========================================================================
+   📦 STAGED VIDEO READY CARD (TWO-STEP UPLOAD)
+   ========================================================================= */
+
+.staged-video-card {
+    background: linear-gradient(135deg, rgba(20, 28, 48, 0.95) 0%, rgba(12, 18, 32, 0.98) 100%);
+    border: 1.5px solid rgba(6, 182, 212, 0.45);
+    border-radius: 18px;
+    padding: 24px 28px;
+    margin: 18px 0 24px 0;
+    box-shadow: 0 16px 40px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.staged-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.staged-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.staged-filename {
+    font-family: var(--font-mono);
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+}
+
+.staged-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    background: rgba(10, 15, 26, 0.6);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 14px 0 18px 0;
+}
+
+.staged-detail-item {
+    font-size: 0.78rem;
+    color: #94a3b8;
+}
+
+.staged-detail-item b {
+    color: #f1f5f9;
+    display: block;
+    font-size: 0.88rem;
+    margin-top: 2px;
+}
+
+/* =========================================================================
+   🤖 AI VIDEO COPILOT CHATBOT STYLES
+   ========================================================================= */
+
+.copilot-card {
+    background: linear-gradient(135deg, rgba(20, 26, 44, 0.9) 0%, rgba(10, 14, 26, 0.95) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 18px;
+    padding: 24px 28px;
+    margin: 16px 0 24px 0;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+}
+
+.copilot-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.copilot-agent-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.copilot-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #6366f1, #06b6d4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    box-shadow: 0 0 16px rgba(99, 102, 241, 0.5);
+}
+
+.copilot-info h4 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.copilot-info span {
+    font-size: 0.76rem;
+    font-family: var(--font-mono);
+    color: #34d399;
+}
+
+.prompt-suggestions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.prompt-chip {
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    color: #cbd5e1;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.prompt-chip:hover {
+    background: rgba(99, 102, 241, 0.25);
+    color: #ffffff;
+    border-color: rgba(99, 102, 241, 0.6);
+    transform: translateY(-1px);
+}
+
+.chat-bubble-user {
+    background: rgba(99, 102, 241, 0.2);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    border-radius: 14px 14px 2px 14px;
+    padding: 12px 16px;
+    color: #f8fafc;
+    font-size: 0.92rem;
+    margin: 10px 0 14px auto;
+    max-width: 80%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.chat-bubble-ai {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px 14px 14px 2px;
+    padding: 16px 20px;
+    color: #cbd5e1;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    margin: 10px 0 16px 0;
+    max-width: 90%;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* =========================================================================
+   🚫 COMPLETE SIDEBAR ELIMINATION & FULL-PAGE STUDIO CANVAS
+   ========================================================================= */
+
+section[data-testid="stSidebar"],
+div[data-testid="collapsedControl"],
+button[data-testid="baseButton-headerNoPadding"] {
+    display: none !important;
+}
+
+.main .block-container {
+    max-width: 1420px !important;
+    padding-top: 1.5rem !important;
+    padding-left: 2.2rem !important;
+    padding-right: 2.2rem !important;
+}
+
+/* =========================================================================
+   📸 CINEMATIC CAMERA APERTURE & SHUTTER STUTTER INTRO
+   ========================================================================= */
+
+@keyframes filmStutter {
+    0% { opacity: 0.92; transform: translate(0, 0); }
+    15% { opacity: 1; transform: translate(-1.5px, 1px); }
+    30% { opacity: 0.88; transform: translate(1px, -1.5px); }
+    45% { opacity: 1; transform: translate(-1px, 1px); }
+    60% { opacity: 0.94; transform: translate(1.5px, -1px); }
+    75% { opacity: 1; transform: translate(-0.5px, 0.5px); }
+    100% { opacity: 1; transform: translate(0, 0); }
+}
+
+@keyframes shutterApertureSpin {
+    0% { transform: rotate(0deg) scale(0.95); }
+    50% { transform: rotate(180deg) scale(1.05); }
+    100% { transform: rotate(360deg) scale(0.95); }
+}
+
+@keyframes flashAperture {
+    0%, 100% { box-shadow: 0 0 25px rgba(236, 72, 153, 0.3), inset 0 0 20px rgba(99, 102, 241, 0.2); }
+    50% { box-shadow: 0 0 45px rgba(6, 182, 212, 0.5), inset 0 0 35px rgba(236, 72, 153, 0.4); }
+}
+
+.cinematic-shutter-intro {
+    background: radial-gradient(circle at 50% 30%, rgba(30, 41, 65, 0.95) 0%, rgba(8, 12, 24, 0.98) 100%);
+    border: 1.5px solid rgba(99, 102, 241, 0.45);
+    border-radius: 24px;
+    padding: 36px 42px;
+    margin: 12px 0 26px 0;
+    position: relative;
+    overflow: hidden;
+    animation: filmStutter 0.9s ease-out 1;
+    box-shadow: 0 25px 65px rgba(0, 0, 0, 0.7), 0 0 40px rgba(99, 102, 241, 0.22);
+}
+
+.cinematic-shutter-intro::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.08) 0%, transparent 60%);
+    animation: shutterApertureSpin 20s linear infinite;
+    pointer-events: none;
+}
+
+.aperture-emblem {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ec4899 0%, #6366f1 50%, #06b6d4 100%);
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    font-size: 1.5rem;
+    animation: flashAperture 3s infinite ease-in-out;
+}
+
+/* =========================================================================
+   ✏️ FIGMA DOODLE GRAPHIC ACCENTS & CREATOR BADGES
+   ========================================================================= */
+
+.figma-doodle-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1.5px dashed rgba(245, 158, 11, 0.55);
+    color: #fde68a;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 8px;
+    transform: rotate(-1.2deg);
+    margin-right: 8px;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+}
+
+.creator-tape-badge {
+    background: rgba(236, 72, 153, 0.18);
+    border: 1px dashed rgba(236, 72, 153, 0.5);
+    color: #f472b6;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 6px;
+    transform: rotate(1deg);
+    display: inline-block;
+}
+
+.audio-sound-active-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(16, 185, 129, 0.16);
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    color: #34d399;
+    font-size: 0.74rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+}
+
+/* =========================================================================
+   🎛️ ON-PAGE STUDIO CONTROL DECK (NO SIDEBAR NEEDED)
+   ========================================================================= */
+
+.onpage-studio-deck {
+    background: linear-gradient(135deg, rgba(16, 24, 44, 0.9) 0%, rgba(8, 14, 28, 0.96) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    border-radius: 18px;
+    padding: 22px 28px;
+    margin: 18px 0 24px 0;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.deck-headline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.deck-title {
+    font-size: 1.12rem;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.deck-specs-tag {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: #06b6d4;
+    background: rgba(6, 182, 212, 0.12);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+
+/* =========================================================================
+   ✂️ PRECISION TIMECODE CLIP TRIMMER
+   ========================================================================= */
+
+.precision-trimmer-card {
+    background: linear-gradient(135deg, rgba(22, 30, 52, 0.9) 0%, rgba(12, 17, 32, 0.95) 100%);
+    border: 1.5px solid rgba(236, 72, 153, 0.35);
+    border-radius: 18px;
+    padding: 24px 28px;
+    margin: 18px 0 24px 0;
+    box-shadow: 0 16px 45px rgba(236, 72, 153, 0.12);
+}
+
+.trimmer-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
 </style>
 """

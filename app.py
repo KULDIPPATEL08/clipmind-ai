@@ -30,11 +30,13 @@ from clipmind.security import (
 )
 from clipmind.ui.components import (
     render_ai_cockpit_status_bar,
+    render_ai_copilot_chatbot,
     render_brand_header,
     render_full_video_narrative_hero,
     render_keyframe_gallery,
     render_landing_showcase,
     render_metadata_cards,
+    render_precision_clip_trimmer,
     render_scene_clips_gallery,
     render_scene_intelligence_cards,
     render_summary_analytics,
@@ -52,7 +54,7 @@ st.set_page_config(
     page_title="ClipMind AI — Video Intelligence Platform",
     page_icon="🎬",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # Inject custom styles
@@ -114,135 +116,70 @@ def main() -> None:
     if "trigger_demo" not in st.session_state:
         st.session_state["trigger_demo"] = False
 
-    # Sidebar: Configuration & Controls
-    with st.sidebar:
-        st.markdown("### ⚡ Speed & Performance Engine")
-        speed_choice = st.radio(
-            "Processing Speed Profile",
-            options=[
-                "⚡ Turbo Accelerated (3x Speed)",
-                "⚖️ Balanced Fast (2x Speed)",
-                "🎯 Studio Precision (1x Detailed)",
-            ],
-            index=1,
-            help="Turbo and Balanced use calibrated frame skipping to deliver blazing fast processing on standard CPUs.",
-        )
-        speed_map = {
-            "⚡ Turbo Accelerated (3x Speed)": "turbo",
-            "⚖️ Balanced Fast (2x Speed)": "fast",
-            "🎯 Studio Precision (1x Detailed)": "precision",
-        }
-        speed_profile = speed_map[speed_choice]
-
-        st.markdown("---")
-        st.markdown("### ⚙️ Scene Detection Engine")
-
-        detector_choice = st.selectbox(
-            "Detection Mode",
-            options=[
-                "Hybrid (Best Quality — Adaptive + Content)",
-                "Adaptive (Lighting & Camera Motion Compensated)",
-                "Content (Fast Hard Cut Detection)",
-                "Threshold (Fade In/Out Transitions)",
-            ],
-            index=0,
-            help="Hybrid combines adaptive rolling frame comparison and content color differencing for maximum cut accuracy.",
-        )
-
-        detector_map = {
-            "Hybrid (Best Quality — Adaptive + Content)": "hybrid",
-            "Adaptive (Lighting & Camera Motion Compensated)": "adaptive",
-            "Content (Fast Hard Cut Detection)": "content",
-            "Threshold (Fade In/Out Transitions)": "threshold",
-        }
-        detector_type = detector_map[detector_choice]
-
-        if detector_type in ["hybrid", "adaptive"]:
-            adaptive_thresh = st.slider(
-                "Adaptive Cut Sensitivity",
-                min_value=1.5,
-                max_value=6.0,
-                value=3.0,
-                step=0.2,
-                help="Lower values trigger more sensitive cuts; higher values restrict to prominent transitions.",
+    # On-Page Studio Intelligence Control Deck (No Sidebar)
+    with st.expander("🎛️ Studio Intelligence Control Deck (Speed Engine, Hybrid Detector, & Audio Slicing Dials)", expanded=False):
+        c_deck1, c_deck2, c_deck3 = st.columns(3)
+        with c_deck1:
+            st.markdown("##### ⚡ Speed & Acceleration Profile")
+            speed_choice = st.radio(
+                "Processing Speed Profile",
+                options=[
+                    "⚡ Hyper-Turbo (3x Speed • Recommended)",
+                    "⚖️ Balanced Fast (2x Speed)",
+                    "🎯 Studio Precision (1x Detailed)",
+                ],
+                index=0,
+                help="Hyper-Turbo uses calibrated frame skipping to deliver blazing fast processing on standard CPUs.",
             )
-        else:
-            adaptive_thresh = 3.0
+            speed_map = {
+                "⚡ Hyper-Turbo (3x Speed • Recommended)": "turbo",
+                "⚖️ Balanced Fast (2x Speed)": "fast",
+                "🎯 Studio Precision (1x Detailed)": "precision",
+            }
+            speed_profile = speed_map[speed_choice]
 
-        threshold = st.slider(
-            "Content Threshold",
-            min_value=10.0,
-            max_value=50.0,
-            value=config.default_content_threshold,
-            step=1.0,
-            help="Sensitivity to color palette changes across frames.",
-        )
+        with c_deck2:
+            st.markdown("##### ⚙️ Scene Cut Detection Engine")
+            detector_choice = st.selectbox(
+                "Detection Mode",
+                options=[
+                    "Hybrid (Best Quality — Adaptive + Content)",
+                    "Adaptive (Lighting & Camera Motion Compensated)",
+                    "Content (Fast Hard Cut Detection)",
+                    "Threshold (Fade In/Out Transitions)",
+                ],
+                index=0,
+                help="Hybrid combines adaptive rolling frame comparison and content color differencing for maximum cut accuracy.",
+            )
+            detector_map = {
+                "Hybrid (Best Quality — Adaptive + Content)": "hybrid",
+                "Adaptive (Lighting & Camera Motion Compensated)": "adaptive",
+                "Content (Fast Hard Cut Detection)": "content",
+                "Threshold (Fade In/Out Transitions)": "threshold",
+            }
+            detector_type = detector_map[detector_choice]
 
-        min_scene_frames = st.slider(
-            "Min Scene Length (Frames)",
-            min_value=5,
-            max_value=90,
-            value=config.default_min_scene_length_frames,
-            step=5,
-            help="Minimum consecutive frames required to constitute a distinct scene cut.",
-        )
+            if detector_type in ["hybrid", "adaptive"]:
+                adaptive_thresh = st.slider("Adaptive Sensitivity", 1.5, 6.0, 3.0, 0.2)
+            else:
+                adaptive_thresh = 3.0
+            threshold = st.slider("Content Cut Threshold", 10.0, 50.0, config.default_content_threshold, 1.0)
+            min_scene_frames = st.slider("Min Scene Length (Frames)", 5, 90, config.default_min_scene_length_frames, 5)
 
-        st.markdown("---")
-        st.markdown("### 🎬 Video Clips Generation")
+        with c_deck3:
+            st.markdown("##### 🎬 Lossless Slicing & Keyframes")
+            generate_clips = st.checkbox("Generate Video Clips (Audio Intact)", value=True)
+            max_clips = st.slider("Max Video Clips", 5, 50, 25, 5)
+            keyframe_strategy = st.selectbox("Representative Frame", ["middle", "start", "end"], index=0)
+            enable_dedup = st.checkbox("Keyframe Deduplication", value=True)
+            max_keyframes = st.slider("Max Keyframes Limit", 5, 150, 40, 5)
 
-        generate_clips = st.checkbox(
-            "Generate Video Clips (.mp4)",
-            value=True,
-            help="Extracts frame-accurate individual video files for every detected scene cut.",
-        )
-
-        max_clips = st.slider(
-            "Max Video Clips",
-            min_value=5,
-            max_value=50,
-            value=25,
-            step=5,
-            help="Limit number of video clips generated to conserve disk space and CPU time.",
-        )
-
-        st.markdown("---")
-        st.markdown("### 🎯 Keyframe Selection")
-
-        keyframe_strategy = st.selectbox(
-            "Representative Frame Strategy",
-            options=["middle", "start", "end"],
-            index=0,
-            help="Middle frame is the most stable and representative frame of a scene.",
-        )
-
-        enable_dedup = st.checkbox(
-            "Enable Keyframe Deduplication",
-            value=True,
-            help="Filters out visually near-identical frames across consecutive scenes.",
-        )
-
-        max_keyframes = st.slider(
-            "Max Keyframes Limit",
-            min_value=5,
-            max_value=150,
-            value=40,
-            step=5,
-        )
-
-        st.markdown("---")
-        st.markdown(
-            """
-            **Security & Privacy**:
-            - Videos are processed locally in isolated ephemeral workspaces.
-            - Files are not shared or sent to external servers.
-            """
-        )
-
-    # Check if demo was triggered
-    load_demo = st.session_state.get("trigger_demo", False)
+    start_analysis = False
+    active_upload = None
+    run_demo = False
 
     # Main Area: Landing or Upload
-    if "analysis_results" not in st.session_state and not load_demo:
+    if "analysis_results" not in st.session_state:
         # Render high-impact landing showcase
         render_landing_showcase()
 
@@ -250,7 +187,7 @@ def main() -> None:
         col_up, col_demo = st.columns([3, 2])
 
         with col_up:
-            st.markdown("##### 📤 Drag & Drop Video File")
+            st.markdown("##### 📤 Step 1: Select Video File")
             uploaded_file = st.file_uploader(
                 "Upload MP4, MOV, AVI, MKV, or WEBM",
                 type=["mp4", "mov", "avi", "mkv", "webm"],
@@ -265,31 +202,101 @@ def main() -> None:
                 <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px; margin-bottom: 12px;">
                     <div style="font-size: 0.9rem; font-weight: 700; color: #f8fafc; margin-bottom: 4px;">Zero Setup Required</div>
                     <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.4;">
-                        Test the complete multi-scene hybrid cut detector, neural palette clustering, and video clip slicer immediately.
+                        Test the complete multi-scene hybrid cut detector, audio preservation slicer, and AI copilot immediately.
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-            if st.button("✨ Launch Instant Demo Experience", type="primary", use_container_width=True):
-                st.session_state["trigger_demo"] = True
-                st.rerun()
+            if st.button("✨ Select Demo Video (4 Scenes • 4K Synthetic)", use_container_width=True):
+                st.session_state["staged_video"] = "demo"
 
-        if not uploaded_file:
-            return
-    else:
-        uploaded_file = None
-        if "analysis_results" in st.session_state:
-            # Action bar above results
-            r_col1, r_col2 = st.columns([5, 1])
-            with r_col2:
-                if st.button("🔄 New Video", help="Reset workspace and analyze another video"):
-                    st.session_state.pop("analysis_results", None)
-                    st.session_state["trigger_demo"] = False
+        # Check what is staged
+        if uploaded_file is not None:
+            st.session_state["staged_video"] = "upload"
+
+        staged_kind = st.session_state.get("staged_video")
+
+        if staged_kind == "upload" and uploaded_file is not None:
+            size_mb = round(len(uploaded_file.getvalue()) / (1024 * 1024), 2)
+            st.markdown(
+                f"""
+                <div class="staged-video-card">
+                    <div class="staged-header">
+                        <div class="staged-title">
+                            <span>🎬 Video Staged & Ready</span>
+                            <span class="audio-sound-active-badge">🔊 Sound Preserved</span>
+                        </div>
+                        <span class="staged-filename">{uploaded_file.name}</span>
+                    </div>
+                    <div class="staged-details-grid">
+                        <div class="staged-detail-item">Container: <b>{uploaded_file.name.split('.')[-1].upper()}</b></div>
+                        <div class="staged-detail-item">File Size: <b>{size_mb} MB</b></div>
+                        <div class="staged-detail-item">Speed Engine: <b>{speed_profile.upper()}</b></div>
+                        <div class="staged-detail-item">Detector: <b>{detector_type.upper()}</b></div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.markdown("##### 📺 Direct Video Preview On Page")
+            st.video(uploaded_file)
+
+            col_start, col_cancel = st.columns([3, 1])
+            with col_start:
+                if st.button("🚀 Start AI Scene Slicing & Analysis", type="primary", use_container_width=True):
+                    start_analysis = True
+                    active_upload = uploaded_file
+            with col_cancel:
+                if st.button("✖ Cancel Selection", use_container_width=True):
+                    st.session_state.pop("staged_video", None)
                     st.rerun()
 
-    # Trigger processing
-    if uploaded_file or load_demo:
+        elif staged_kind == "demo":
+            st.markdown(
+                f"""
+                <div class="staged-video-card">
+                    <div class="staged-header">
+                        <div class="staged-title">
+                            <span>🎬 Synthetic Demo Staged</span>
+                            <span class="audio-sound-active-badge">🔊 Sound Preserved</span>
+                        </div>
+                        <span class="staged-filename">demo_synthetic_4cut.mp4</span>
+                    </div>
+                    <div class="staged-details-grid">
+                        <div class="staged-detail-item">Source: <b>4 Distinct Multi-Color Scenes</b></div>
+                        <div class="staged-detail-item">Frame Rate: <b>30 FPS • 4K Motion Elements</b></div>
+                        <div class="staged-detail-item">Speed Engine: <b>{speed_profile.upper()}</b></div>
+                        <div class="staged-detail-item">Detector: <b>{detector_type.upper()}</b></div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            col_start, col_cancel = st.columns([3, 1])
+            with col_start:
+                if st.button("🚀 Start AI Scene Slicing & Analysis", type="primary", use_container_width=True):
+                    start_analysis = True
+                    run_demo = True
+            with col_cancel:
+                if st.button("✖ Cancel Selection", use_container_width=True):
+                    st.session_state.pop("staged_video", None)
+                    st.rerun()
+
+        if not start_analysis:
+            return
+    else:
+        # Results area action bar
+        r_col1, r_col2 = st.columns([5, 1])
+        with r_col2:
+            if st.button("🔄 New Video", help="Reset workspace and analyze another video"):
+                st.session_state.pop("analysis_results", None)
+                st.session_state.pop("staged_video", None)
+                st.session_state.pop("copilot_history", None)
+                st.rerun()
+
+    # Trigger processing only when Start is clicked
+    if start_analysis:
         session = JobSession()
         session.start()
         st.session_state["active_session"] = session
@@ -302,13 +309,13 @@ def main() -> None:
             status_text.text("Validating video file and container headers...")
             progress_bar.progress(0.15)
 
-            if load_demo:
+            if run_demo:
                 video_path = session.video_dir / "demo_synthetic.mp4"
                 create_demo_synthetic_video(video_path)
             else:
                 video_path = save_upload_securely(
-                    file_obj=uploaded_file,
-                    original_filename=uploaded_file.name,
+                    file_obj=active_upload,
+                    original_filename=active_upload.name,
                     job_session=session,
                 )
 
@@ -469,8 +476,15 @@ def main() -> None:
         if narrative:
             render_full_video_narrative_hero(narrative)
 
+        # Master Video Preview on Page
+        session_obj = st.session_state.get("active_session")
+        if session_obj and (session_obj.video_dir / meta.filename).exists():
+            with st.expander("📺 Master Video Player Monitor (Audio Active)", expanded=False):
+                st.video(str(session_obj.video_dir / meta.filename))
+
         # Tabs for deep exploration
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        tab_copilot, tab1, tab2, tab3, tab4, tab5 = st.tabs([
+            "🤖 AI Video Copilot",
             "🎞️ Scene Video Clips",
             "🖼️ Keyframes & Storyboard",
             "📊 Analytics & Narrative",
@@ -478,7 +492,12 @@ def main() -> None:
             "📦 Export & Download",
         ])
 
+        with tab_copilot:
+            render_ai_copilot_chatbot(meta, scenes, summary, narrative)
+
         with tab1:
+            if session_obj:
+                render_precision_clip_trimmer(session_obj.video_dir / meta.filename, meta, session_obj.clips_dir)
             render_scene_clips_gallery(scenes)
 
         with tab2:
