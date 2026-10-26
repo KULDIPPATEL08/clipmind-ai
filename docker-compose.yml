@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  clipmind:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: clipmind-ai:latest
+    container_name: clipmind-app
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - CLIPMIND_MAX_UPLOAD_MB=500
+      - CLIPMIND_MAX_DURATION_SEC=3600
+      - CLIPMIND_AUTO_CLEANUP=true
+      - CLIPMIND_LOG_LEVEL=INFO
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4096M
+        reservations:
+          cpus: "1.0"
+          memory: 1024M
+    tmpfs:
+      - /app/.clipmind_tmp:rw,noexec,nosuid,size=2048M
+    security_opt:
+      - no-new-privileges:true
