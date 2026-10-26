@@ -38,6 +38,7 @@ class JobSession:
         # Isolated subdirectories
         self.video_dir = self.job_dir / "video"
         self.keyframes_dir = self.job_dir / "keyframes"
+        self.clips_dir = self.job_dir / "clips"
         self.exports_dir = self.job_dir / "exports"
 
         self._active = False
@@ -59,6 +60,7 @@ class JobSession:
         """Create directory structure for this isolated session."""
         self.video_dir.mkdir(parents=True, exist_ok=True)
         self.keyframes_dir.mkdir(parents=True, exist_ok=True)
+        self.clips_dir.mkdir(parents=True, exist_ok=True)
         self.exports_dir.mkdir(parents=True, exist_ok=True)
         self._active = True
         logger.info(

@@ -147,3 +147,36 @@ def render_keyframe_gallery(
                     key=f"dl_kf_{kf.scene_number}_{idx}",
                     use_container_width=True,
                 )
+
+
+def render_scene_clips_gallery(scenes: List[SceneInfo]) -> None:
+    """Renders playable video clips for each detected scene with individual download buttons."""
+    st.markdown("##### 🎞️ Scene Video Clips (Exact Cuts)")
+
+    valid_scenes = [s for s in scenes if s.clip_path and Path(s.clip_path).exists()]
+    if not valid_scenes:
+        st.info("ℹ️ No video clips generated. Enable 'Generate Scene Video Clips' in the sidebar to create video cuts.")
+        return
+
+    st.write(f"Generated **{len(valid_scenes)}** frame-accurate video clips:")
+
+    cols = st.columns(2)
+    for idx, s in enumerate(valid_scenes):
+        col = cols[idx % 2]
+        with col:
+            st.markdown(
+                f"**Scene #{s.scene_number:02d}** • `{s.start_timecode}` to `{s.end_timecode}` "
+                f"({s.duration_seconds:.2f}s)"
+            )
+            st.video(str(s.clip_path))
+            with open(s.clip_path, "rb") as vf:
+                clip_data = vf.read()
+                st.download_button(
+                    label=f"⬇️ Download Scene #{s.scene_number:02d} Clip (MP4)",
+                    data=clip_data,
+                    file_name=s.clip_filename or f"scene_{s.scene_number:03d}.mp4",
+                    mime="video/mp4",
+                    key=f"dl_clip_{s.scene_number}_{idx}",
+                    use_container_width=True,
+                )
+

@@ -33,6 +33,9 @@ class SceneInfo:
     keyframe_time_seconds: Optional[float] = None
     keyframe_timecode: Optional[str] = None
     keyframe_path: Optional[str] = None
+    clip_path: Optional[str] = None
+    clip_filename: Optional[str] = None
+    clip_size_mb: Optional[float] = None
     pacing_label: str = "normal"  # "rapid (<2s)", "normal (2-8s)", "long (>8s)"
 
     def to_dict(self) -> Dict[str, Any]:
@@ -63,35 +66,62 @@ def get_pacing_label(duration: float) -> str:
 
 
 class VideoSceneDetector:
-    """Detects scene cuts and transitions in video files."""
+    """Detects scene cuts and transitions in video files with high precision."""
 
     def __init__(
         self,
-        detector_type: str = "content",
+        detector_type: str = "hybrid",
         threshold: float = 27.0,
         min_scene_len_frames: int = 15,
+        adaptive_threshold: float = 3.0,
     ) -> None:
         self.detector_type = detector_type.lower()
         self.threshold = threshold
         self.min_scene_len_frames = max(1, min_scene_len_frames)
+        self.adaptive_threshold = adaptive_threshold
 
-    def _build_scenedetect_detector(self):
-        """Builds the configured PySceneDetect detector instance."""
+    def _configure_scenedetect(self, scene_manager: SceneManager) -> None:
+        """Adds appropriate detectors to SceneManager based on configuration."""
         if self.detector_type == "adaptive":
-            return AdaptiveDetector(
-                adaptive_threshold=self.threshold,
-                min_scene_len=self.min_scene_len_frames,
+            # For adaptive, threshold should typically be in range 2.0 - 5.0
+            adapt_thresh = (
+                self.threshold if self.threshold <= 10.0 else self.adaptive_threshold
+            )
+            scene_manager.add_detector(
+                AdaptiveDetector(
+                    adaptive_threshold=adapt_thresh,
+                    min_scene_len=self.min_scene_len_frames,
+                )
             )
         elif self.detector_type == "threshold":
-            return ThresholdDetector(
-                threshold=self.threshold,
-                min_scene_len=self.min_scene_len_frames,
+            scene_manager.add_detector(
+                ThresholdDetector(
+                    threshold=self.threshold,
+                    min_scene_len=self.min_scene_len_frames,
+                )
+            )
+        elif self.detector_type == "hybrid":
+            # Hybrid: Combines ContentDetector and AdaptiveDetector for perfect cuts
+            content_th = self.threshold if self.threshold >= 15.0 else 27.0
+            scene_manager.add_detector(
+                ContentDetector(
+                    threshold=content_th,
+                    min_scene_len=self.min_scene_len_frames,
+                )
+            )
+            scene_manager.add_detector(
+                AdaptiveDetector(
+                    adaptive_threshold=self.adaptive_threshold,
+                    min_scene_len=self.min_scene_len_frames,
+                )
             )
         else:
-            # Default to ContentDetector
-            return ContentDetector(
-                threshold=self.threshold,
-                min_scene_len=self.min_scene_len_frames,
+            # Default ContentDetector
+            scene_manager.add_detector(
+                ContentDetector(
+                    threshold=self.threshold,
+                    min_scene_len=self.min_scene_len_frames,
+                )
             )
 
     def detect_scenes(
@@ -146,7 +176,7 @@ class VideoSceneDetector:
         """Detects scenes using PySceneDetect's SceneManager."""
         video = open_video(str(video_path))
         scene_manager = SceneManager()
-        scene_manager.add_detector(self._build_scenedetect_detector())
+        self._configure_scenedetect(scene_manager)
 
         if progress_callback:
             progress_callback(0.3, "Analyzing video frames for scene transitions...")
@@ -224,17 +254,18 @@ class VideoSceneDetector:
         meta: VideoMetadata,
         progress_callback: Optional[Callable[[float, str], None]] = None,
     ) -> List[SceneInfo]:
-        """Custom CPU-friendly OpenCV frame differencing detector."""
+        """Custom CPU-friendly OpenCV frame differencing detector with single-frame cut accuracy."""
         cap = cv2.VideoCapture(str(video_path))
         if not cap.isOpened():
             raise CorruptedVideoError(f"Cannot open video for fallback detection: {video_path}")
 
         fps = meta.fps if meta.fps > 0 else 30.0
         total_frames = meta.total_frames
-        sample_step = max(1, int(fps / 5))  # Sample ~5 times a second for speed
+        sample_step = max(1, int(fps / 10))  # Sample every 2-3 frames for high temporal accuracy
 
         scene_cut_frames = [0]
         prev_hist = None
+        prev_gray = None
         frame_idx = 0
 
         try:
@@ -244,21 +275,27 @@ class VideoSceneDetector:
                     break
 
                 if frame_idx % sample_step == 0:
-                    # Resize to low-res thumbnail for lightning-fast histogram computation
                     small = cv2.resize(frame, (160, 90), interpolation=cv2.INTER_AREA)
                     hsv = cv2.cvtColor(small, cv2.COLOR_BGR2HSV)
+                    gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+
                     hist = cv2.calcHist([hsv], [0, 1], None, [16, 16], [0, 180, 0, 256])
                     cv2.normalize(hist, hist, 0, 1, cv2.NORM_MINMAX)
 
-                    if prev_hist is not None:
-                        # Correlation comparison: lower correlation means bigger visual change
+                    if prev_hist is not None and prev_gray is not None:
                         corr = cv2.compareHist(prev_hist, hist, cv2.HISTCMP_CORREL)
-                        if corr < 0.65 and (frame_idx - scene_cut_frames[-1]) >= self.min_scene_len_frames:
+                        diff = cv2.absdiff(prev_gray, gray)
+                        mean_diff = float(diff.mean())
+
+                        # Dual-criteria cut detection: color correlation or spatial pixel change
+                        is_cut = (corr < 0.65 or mean_diff > 25.0)
+                        if is_cut and (frame_idx - scene_cut_frames[-1]) >= self.min_scene_len_frames:
                             scene_cut_frames.append(frame_idx)
                             if len(scene_cut_frames) >= config.max_scenes_limit:
                                 break
 
                     prev_hist = hist
+                    prev_gray = gray
 
                 frame_idx += 1
                 if progress_callback and total_frames > 0 and frame_idx % 60 == 0:

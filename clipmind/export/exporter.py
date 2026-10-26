@@ -51,6 +51,41 @@ def create_keyframe_zip(
         raise ExportError(f"Failed to create keyframes archive: {e}")
 
 
+def create_video_clips_zip(
+    scenes: List[SceneInfo],
+    output_zip_path: Path,
+) -> Path:
+    """Packages all generated individual scene video clips into a compressed ZIP archive."""
+    output_zip_path = Path(output_zip_path).resolve()
+    output_zip_path.parent.mkdir(parents=True, exist_ok=True)
+
+    valid_clips = []
+    for s in scenes:
+        if s.clip_path and Path(s.clip_path).exists():
+            valid_clips.append((Path(s.clip_path), s.clip_filename or Path(s.clip_path).name))
+
+    if not valid_clips:
+        raise ExportError(
+            "No video clips found to package into ZIP archive.",
+            user_friendly_message="No scene video clips are available for download.",
+        )
+
+    try:
+        with zipfile.ZipFile(output_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for clip_path, arc_name in valid_clips:
+                zipf.write(clip_path, arcname=arc_name)
+
+        logger.info(
+            "Created video clips ZIP archive with %d video clips: %s",
+            len(valid_clips),
+            output_zip_path.name,
+        )
+        return output_zip_path
+    except Exception as e:
+        logger.error("Failed creating video clips ZIP: %s", e)
+        raise ExportError(f"Failed to create video clips archive: {e}")
+
+
 def export_scenes_csv(scenes: List[SceneInfo], output_csv_path: Path) -> Path:
     """Exports detected scenes and timing data to a standardized CSV format."""
     output_csv_path = Path(output_csv_path).resolve()

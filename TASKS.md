@@ -35,6 +35,14 @@ ClipMind AI is an enterprise-grade Scene-Aware Video Summarization and Keyframe 
   - **Acceptance Criteria**: Complete pytest suite covering config, security, metadata, detection, keyframe extraction, export, and cleanup without requiring external internet or GPU.
   - **Verification**: `pytest tests/` passes 100%.
 
+- [x] **Task P0.8: Frame-Accurate Video Clip Slicing & Playback**
+  - **Acceptance Criteria**: Slices input video into exact, frame-accurate `.mp4` video clips for each detected scene cut. Playable directly in browser UI and exportable as individual MP4s and a compressed video clips ZIP archive.
+  - **Verification**: `test_clipper.py` unit tests pass; verified in browser with video player.
+
+- [x] **Task P0.9: Hybrid Precision Scene Cut Detection**
+  - **Acceptance Criteria**: Combines PySceneDetect `AdaptiveDetector` (rolling lighting compensation) and `ContentDetector` with dual-metric OpenCV fallback for pixel-perfect cuts without missing subtle transitions or pan shifts.
+  - **Verification**: Verified with multi-scene synthetic videos across detector modes.
+
 ---
 
 ## P1: Professional Quality & UX

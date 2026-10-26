@@ -15,6 +15,7 @@ from clipmind.config import config
 from clipmind.exceptions import ClipMindError
 from clipmind.export.exporter import (
     create_keyframe_zip,
+    create_video_clips_zip,
     export_scenes_csv,
     export_summary_json,
     export_summary_markdown,
@@ -30,10 +31,12 @@ from clipmind.ui.components import (
     render_brand_header,
     render_keyframe_gallery,
     render_metadata_cards,
+    render_scene_clips_gallery,
     render_summary_analytics,
     render_timeline_bar,
 )
 from clipmind.ui.styles import MAIN_CSS
+from clipmind.video.clipper import extract_scene_clips
 from clipmind.video.detector import VideoSceneDetector
 from clipmind.video.keyframe import KeyframeExtractor, generate_contact_sheet
 from clipmind.video.metadata import extract_video_metadata
@@ -102,22 +105,47 @@ def main() -> None:
 
     # Sidebar: Configuration & Controls
     with st.sidebar:
-        st.markdown("### ⚙️ Analysis Parameters")
+        st.markdown("### ⚙️ Scene Detection Engine")
 
-        detector_type = st.selectbox(
-            "Scene Detector Engine",
-            options=["content", "adaptive", "threshold"],
+        detector_choice = st.selectbox(
+            "Detection Mode",
+            options=[
+                "Hybrid (Best Quality — Adaptive + Content)",
+                "Adaptive (Lighting & Camera Motion Compensated)",
+                "Content (Fast Hard Cut Detection)",
+                "Threshold (Fade In/Out Transitions)",
+            ],
             index=0,
-            help="Content detector uses HSV frame difference. Adaptive adapts to lighting. Threshold detects fades.",
+            help="Hybrid combines adaptive rolling frame comparison and content color differencing for maximum cut accuracy.",
         )
 
+        detector_map = {
+            "Hybrid (Best Quality — Adaptive + Content)": "hybrid",
+            "Adaptive (Lighting & Camera Motion Compensated)": "adaptive",
+            "Content (Fast Hard Cut Detection)": "content",
+            "Threshold (Fade In/Out Transitions)": "threshold",
+        }
+        detector_type = detector_map[detector_choice]
+
+        if detector_type in ["hybrid", "adaptive"]:
+            adaptive_thresh = st.slider(
+                "Adaptive Cut Sensitivity",
+                min_value=1.5,
+                max_value=6.0,
+                value=3.0,
+                step=0.2,
+                help="Lower values trigger more sensitive cuts; higher values restrict to prominent transitions.",
+            )
+        else:
+            adaptive_thresh = 3.0
+
         threshold = st.slider(
-            "Detection Sensitivity Threshold",
-            min_value=5.0,
-            max_value=60.0,
+            "Content Threshold",
+            min_value=10.0,
+            max_value=50.0,
             value=config.default_content_threshold,
             step=1.0,
-            help="Lower values detect subtle scene cuts; higher values detect only hard cuts.",
+            help="Sensitivity to color palette changes across frames.",
         )
 
         min_scene_frames = st.slider(
@@ -126,7 +154,25 @@ def main() -> None:
             max_value=90,
             value=config.default_min_scene_length_frames,
             step=5,
-            help="Minimum consecutive frames required to constitute a distinct scene.",
+            help="Minimum consecutive frames required to constitute a distinct scene cut.",
+        )
+
+        st.markdown("---")
+        st.markdown("### 🎬 Video Clips Generation")
+
+        generate_clips = st.checkbox(
+            "Generate Video Clips (.mp4)",
+            value=True,
+            help="Extracts frame-accurate individual video files for every detected scene cut.",
+        )
+
+        max_clips = st.slider(
+            "Max Video Clips",
+            min_value=5,
+            max_value=50,
+            value=25,
+            step=5,
+            help="Limit number of video clips generated to conserve disk space and CPU time.",
         )
 
         st.markdown("---")
@@ -221,15 +267,16 @@ def main() -> None:
             metadata = extract_video_metadata(video_path)
 
             # Step 3: Scene Detection
-            status_text.text("Running scene boundary detection...")
+            status_text.text("Running high-precision scene boundary detection...")
             detector = VideoSceneDetector(
                 detector_type=detector_type,
                 threshold=threshold,
                 min_scene_len_frames=min_scene_frames,
+                adaptive_threshold=adaptive_thresh,
             )
 
             def on_detect_progress(ratio: float, msg: str) -> None:
-                progress_bar.progress(min(0.7, ratio))
+                progress_bar.progress(min(0.65, ratio))
                 status_text.text(msg)
 
             scenes = detector.detect_scenes(
@@ -240,7 +287,7 @@ def main() -> None:
 
             # Step 4: Keyframe Extraction & Deduplication
             status_text.text(f"Extracting representative keyframes for {len(scenes)} scenes...")
-            progress_bar.progress(0.75)
+            progress_bar.progress(0.70)
             extractor = KeyframeExtractor(
                 strategy=keyframe_strategy,
                 enable_deduplication=enable_dedup,
@@ -248,7 +295,7 @@ def main() -> None:
             )
 
             def on_extract_progress(ratio: float, msg: str) -> None:
-                progress_bar.progress(min(0.95, ratio))
+                progress_bar.progress(0.70 + 0.15 * ratio)
                 status_text.text(msg)
 
             keyframes = extractor.extract_keyframes(
@@ -258,7 +305,32 @@ def main() -> None:
                 progress_callback=on_extract_progress,
             )
 
-            # Step 5: Summary and Exports
+            # Step 5: Optional Video Clip Extraction
+            clips_zip = None
+            if generate_clips:
+                status_text.text("Extracting frame-accurate video clips (.mp4) for each scene cut...")
+                progress_bar.progress(0.86)
+
+                def on_clip_progress(ratio: float, msg: str) -> None:
+                    progress_bar.progress(0.86 + 0.10 * ratio)
+                    status_text.text(msg)
+
+                extract_scene_clips(
+                    video_path=video_path,
+                    scenes=scenes,
+                    output_dir=session.clips_dir,
+                    max_clips=max_clips,
+                    progress_callback=on_clip_progress,
+                )
+                try:
+                    clips_zip_path = session.exports_dir / f"{Path(video_path).stem}_scene_clips.zip"
+                    create_video_clips_zip(scenes, clips_zip_path)
+                    clips_zip = clips_zip_path
+                except Exception as ex:
+                    logger.warning("Could not package clips zip: %s", ex)
+                    clips_zip = None
+
+            # Step 6: Summary and Exports
             status_text.text("Generating analytical summary and export packages...")
             summary = generate_video_summary(metadata, scenes, keyframes)
 
@@ -294,12 +366,14 @@ def main() -> None:
                 "keyframes": keyframes,
                 "summary": summary,
                 "zip_path": zip_path,
+                "clips_zip": clips_zip,
                 "csv_path": csv_path,
                 "json_path": json_path,
                 "md_path": md_path,
                 "contact_sheet_path": contact_sheet_path if contact_sheet_path.exists() else None,
             }
-            st.success(f"Analysis completed: {len(scenes)} scenes identified and {len(keyframes)} keyframes extracted.")
+            clip_count = sum(1 for s in scenes if s.clip_path)
+            st.success(f"Analysis completed: {len(scenes)} scenes identified, {len(keyframes)} keyframes extracted, and {clip_count} video clips generated.")
 
         except ClipMindError as e:
             progress_bar.empty()
@@ -322,6 +396,7 @@ def main() -> None:
         keyframes = results["keyframes"]
         summary = results["summary"]
         zip_path = results["zip_path"]
+        clips_zip = results.get("clips_zip")
         csv_path = results["csv_path"]
         json_path = results["json_path"]
         md_path = results["md_path"]
@@ -332,7 +407,8 @@ def main() -> None:
         render_timeline_bar(scenes, meta.duration_seconds)
 
         # Tabs for deep exploration
-        tab1, tab2, tab3, tab4 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+            "🎞️ Scene Video Clips",
             "🖼️ Keyframes & Storyboard",
             "📊 Analytics & Pacing",
             "📋 Scene Table",
@@ -340,6 +416,9 @@ def main() -> None:
         ])
 
         with tab1:
+            render_scene_clips_gallery(scenes)
+
+        with tab2:
             if contact_sheet_path and contact_sheet_path.exists():
                 with st.expander("📌 Full Video Contact Sheet / Storyboard Grid", expanded=True):
                     st.image(str(contact_sheet_path), use_container_width=True)
@@ -354,10 +433,10 @@ def main() -> None:
 
             render_keyframe_gallery(keyframes, scenes)
 
-        with tab2:
+        with tab3:
             render_summary_analytics(summary)
 
-        with tab3:
+        with tab4:
             st.markdown("##### 📋 Detected Scene Manifest")
             import pandas as pd
             df = pd.DataFrame([s.to_dict() for s in scenes])
@@ -369,16 +448,29 @@ def main() -> None:
                 "duration_seconds",
                 "pacing_label",
                 "keyframe_timecode",
+                "clip_filename",
             ]
             available_cols = [c for c in display_cols if c in df.columns]
             st.dataframe(df[available_cols], use_container_width=True)
 
-        with tab4:
+        with tab5:
             st.markdown("##### 📦 Export Intelligence Packages")
             st.write("Download complete analysis packages in standard industry formats.")
 
-            c1, c2, c3, c4 = st.columns(4)
+            c1, c2, c3, c4, c5 = st.columns(5)
             with c1:
+                if clips_zip and Path(clips_zip).exists():
+                    with open(clips_zip, "rb") as czf:
+                        st.download_button(
+                            label="🎬 Video Clips ZIP",
+                            data=czf.read(),
+                            file_name=Path(clips_zip).name,
+                            mime="application/zip",
+                            use_container_width=True,
+                        )
+                else:
+                    st.caption("Clips ZIP not generated")
+            with c2:
                 if zip_path.exists():
                     with open(zip_path, "rb") as zf:
                         st.download_button(
@@ -388,7 +480,7 @@ def main() -> None:
                             mime="application/zip",
                             use_container_width=True,
                         )
-            with c2:
+            with c3:
                 if csv_path.exists():
                     with open(csv_path, "rb") as cf:
                         st.download_button(
@@ -398,7 +490,7 @@ def main() -> None:
                             mime="text/csv",
                             use_container_width=True,
                         )
-            with c3:
+            with c4:
                 if json_path.exists():
                     with open(json_path, "rb") as jf:
                         st.download_button(
@@ -408,7 +500,7 @@ def main() -> None:
                             mime="application/json",
                             use_container_width=True,
                         )
-            with c4:
+            with c5:
                 if md_path.exists():
                     with open(md_path, "rb") as mf:
                         st.download_button(
