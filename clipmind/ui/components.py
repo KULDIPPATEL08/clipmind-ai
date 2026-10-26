@@ -7,10 +7,82 @@ from typing import List, Optional
 
 import streamlit as st
 
+from clipmind.analysis.description import FullVideoNarrative, SceneDescription
 from clipmind.analysis.summary import VideoSummaryReport
 from clipmind.video.detector import SceneInfo
 from clipmind.video.keyframe import Keyframe
 from clipmind.video.metadata import VideoMetadata
+
+
+def render_full_video_narrative_hero(narrative: FullVideoNarrative) -> None:
+    """Renders executive-level narrative synopsis, mood, aesthetic palette, and motion rhythm."""
+    swatches_html = "".join([
+        f'<span class="palette-chip" style="background-color: {hex_c};">'
+        f'<span class="swatch-circle" style="background-color: {hex_c};"></span>{hex_c}</span>'
+        for hex_c in narrative.dominant_palette_hex
+    ])
+
+    st.markdown(
+        f"""
+        <div class="narrative-hero-card">
+            <div class="narrative-title">
+                <span>✨ {narrative.title_suggestion}</span>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                <span class="badge-pill badge-standard">🎭 Mood: {narrative.primary_mood}</span>
+                <span class="badge-pill badge-extended">⚡ Tempo: {narrative.tempo_rhythm_summary}</span>
+                <span class="badge-pill badge-rapid">🎬 Scenes: {narrative.total_scenes_count} Cuts</span>
+            </div>
+            <div class="narrative-synopsis">
+                {narrative.executive_synopsis}
+            </div>
+            <div style="margin-top: 14px;">
+                <span style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;">
+                    Dominant Visual Color Scheme:
+                </span>
+                <div class="palette-container">
+                    {swatches_html}
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_scene_intelligence_cards(narrative: FullVideoNarrative) -> None:
+    """Renders scene-by-scene visual descriptions, motion energy gauges, and color swatches."""
+    st.markdown("##### 📝 Deep Scene-by-Scene Visual Descriptions")
+
+    for s in narrative.scenes:
+        swatches = "".join([
+            f'<span class="palette-chip" style="background-color: {c};">'
+            f'<span class="swatch-circle" style="background-color: {c};"></span>{c}</span>'
+            for c in s.dominant_hex_colors
+        ])
+
+        with st.expander(f"🎬 {s.title}  •  {s.mood_tag}", expanded=(s.scene_number <= 3)):
+            st.markdown(f"**Visual Narrative**: {s.summary_narrative}")
+
+            c1, c2, c3 = st.columns([1, 1, 2])
+            with c1:
+                st.caption("Shot Type & Framing")
+                st.markdown(f"`{s.shot_type_estimate}`")
+            with c2:
+                st.caption("Lighting Aesthetic")
+                st.markdown(f"`{s.lighting_key}`")
+            with c3:
+                st.caption(f"Motion Energy Score: {s.motion_energy_score}/100 ({s.motion_level})")
+                st.markdown(
+                    f"""
+                    <div class="motion-bar-track">
+                        <div class="motion-bar-fill" style="width: {s.motion_energy_score}%;"></div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            st.markdown(f'<div class="palette-container">{swatches}</div>', unsafe_allow_html=True)
 
 
 def render_brand_header() -> None:

@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 import streamlit as st
 
+from clipmind.analysis.description import generate_full_video_narrative
 from clipmind.analysis.summary import generate_video_summary
 from clipmind.config import config
 from clipmind.exceptions import ClipMindError
@@ -29,9 +30,11 @@ from clipmind.security import (
 )
 from clipmind.ui.components import (
     render_brand_header,
+    render_full_video_narrative_hero,
     render_keyframe_gallery,
     render_metadata_cards,
     render_scene_clips_gallery,
+    render_scene_intelligence_cards,
     render_summary_analytics,
     render_timeline_bar,
 )
@@ -105,6 +108,25 @@ def main() -> None:
 
     # Sidebar: Configuration & Controls
     with st.sidebar:
+        st.markdown("### ⚡ Speed & Performance Engine")
+        speed_choice = st.radio(
+            "Processing Speed Profile",
+            options=[
+                "⚡ Turbo Accelerated (3x Speed)",
+                "⚖️ Balanced Fast (2x Speed)",
+                "🎯 Studio Precision (1x Detailed)",
+            ],
+            index=1,
+            help="Turbo and Balanced use calibrated frame skipping to deliver blazing fast processing on standard CPUs.",
+        )
+        speed_map = {
+            "⚡ Turbo Accelerated (3x Speed)": "turbo",
+            "⚖️ Balanced Fast (2x Speed)": "fast",
+            "🎯 Studio Precision (1x Detailed)": "precision",
+        }
+        speed_profile = speed_map[speed_choice]
+
+        st.markdown("---")
         st.markdown("### ⚙️ Scene Detection Engine")
 
         detector_choice = st.selectbox(
@@ -267,16 +289,17 @@ def main() -> None:
             metadata = extract_video_metadata(video_path)
 
             # Step 3: Scene Detection
-            status_text.text("Running high-precision scene boundary detection...")
+            status_text.text(f"Running high-precision scene boundary detection ({speed_profile.upper()} mode)...")
             detector = VideoSceneDetector(
                 detector_type=detector_type,
                 threshold=threshold,
                 min_scene_len_frames=min_scene_frames,
                 adaptive_threshold=adaptive_thresh,
+                speed_profile=speed_profile,
             )
 
             def on_detect_progress(ratio: float, msg: str) -> None:
-                progress_bar.progress(min(0.65, ratio))
+                progress_bar.progress(min(0.60, ratio))
                 status_text.text(msg)
 
             scenes = detector.detect_scenes(
@@ -287,7 +310,7 @@ def main() -> None:
 
             # Step 4: Keyframe Extraction & Deduplication
             status_text.text(f"Extracting representative keyframes for {len(scenes)} scenes...")
-            progress_bar.progress(0.70)
+            progress_bar.progress(0.65)
             extractor = KeyframeExtractor(
                 strategy=keyframe_strategy,
                 enable_deduplication=enable_dedup,
@@ -295,7 +318,7 @@ def main() -> None:
             )
 
             def on_extract_progress(ratio: float, msg: str) -> None:
-                progress_bar.progress(0.70 + 0.15 * ratio)
+                progress_bar.progress(0.65 + 0.15 * ratio)
                 status_text.text(msg)
 
             keyframes = extractor.extract_keyframes(
@@ -305,14 +328,19 @@ def main() -> None:
                 progress_callback=on_extract_progress,
             )
 
-            # Step 5: Optional Video Clip Extraction
+            # Step 5: Deep Video Narrative & Visual Aesthetics Analysis
+            status_text.text("Synthesizing executive video narrative, color palettes, and motion dynamics...")
+            progress_bar.progress(0.82)
+            narrative = generate_full_video_narrative(metadata, scenes, keyframes)
+
+            # Step 6: Optional Video Clip Extraction
             clips_zip = None
             if generate_clips:
                 status_text.text("Extracting frame-accurate video clips (.mp4) for each scene cut...")
-                progress_bar.progress(0.86)
+                progress_bar.progress(0.88)
 
                 def on_clip_progress(ratio: float, msg: str) -> None:
-                    progress_bar.progress(0.86 + 0.10 * ratio)
+                    progress_bar.progress(0.88 + 0.08 * ratio)
                     status_text.text(msg)
 
                 extract_scene_clips(
@@ -330,7 +358,7 @@ def main() -> None:
                     logger.warning("Could not package clips zip: %s", ex)
                     clips_zip = None
 
-            # Step 6: Summary and Exports
+            # Step 7: Summary and Exports
             status_text.text("Generating analytical summary and export packages...")
             summary = generate_video_summary(metadata, scenes, keyframes)
 
@@ -350,10 +378,10 @@ def main() -> None:
             export_scenes_csv(scenes, csv_path)
 
             json_path = session.exports_dir / "analysis_report.json"
-            export_summary_json(metadata, summary, scenes, json_path)
+            export_summary_json(metadata, summary, scenes, json_path, narrative=narrative)
 
             md_path = session.exports_dir / "summary_report.md"
-            export_summary_markdown(metadata, summary, scenes, md_path)
+            export_summary_markdown(metadata, summary, scenes, md_path, narrative=narrative)
 
             progress_bar.progress(1.0)
             status_text.empty()
@@ -365,6 +393,7 @@ def main() -> None:
                 "scenes": scenes,
                 "keyframes": keyframes,
                 "summary": summary,
+                "narrative": narrative,
                 "zip_path": zip_path,
                 "clips_zip": clips_zip,
                 "csv_path": csv_path,
@@ -395,6 +424,7 @@ def main() -> None:
         scenes = results["scenes"]
         keyframes = results["keyframes"]
         summary = results["summary"]
+        narrative = results.get("narrative")
         zip_path = results["zip_path"]
         clips_zip = results.get("clips_zip")
         csv_path = results["csv_path"]
@@ -406,11 +436,15 @@ def main() -> None:
         render_metadata_cards(meta)
         render_timeline_bar(scenes, meta.duration_seconds)
 
+        # Render Next-Level Executive Narrative Hero
+        if narrative:
+            render_full_video_narrative_hero(narrative)
+
         # Tabs for deep exploration
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
             "🎞️ Scene Video Clips",
             "🖼️ Keyframes & Storyboard",
-            "📊 Analytics & Pacing",
+            "📊 Analytics & Narrative",
             "📋 Scene Table",
             "📦 Export & Download",
         ])
@@ -435,6 +469,8 @@ def main() -> None:
 
         with tab3:
             render_summary_analytics(summary)
+            if narrative:
+                render_scene_intelligence_cards(narrative)
 
         with tab4:
             st.markdown("##### 📋 Detected Scene Manifest")

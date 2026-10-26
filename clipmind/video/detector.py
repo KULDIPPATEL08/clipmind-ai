@@ -66,7 +66,7 @@ def get_pacing_label(duration: float) -> str:
 
 
 class VideoSceneDetector:
-    """Detects scene cuts and transitions in video files with high precision."""
+    """Detects scene cuts and transitions in video files with high precision and speed acceleration."""
 
     def __init__(
         self,
@@ -74,11 +74,21 @@ class VideoSceneDetector:
         threshold: float = 27.0,
         min_scene_len_frames: int = 15,
         adaptive_threshold: float = 3.0,
+        speed_profile: str = "fast",
     ) -> None:
         self.detector_type = detector_type.lower()
         self.threshold = threshold
         self.min_scene_len_frames = max(1, min_scene_len_frames)
         self.adaptive_threshold = adaptive_threshold
+        self.speed_profile = speed_profile.lower()
+
+        # Calculate frame skip for acceleration
+        if self.speed_profile == "turbo":
+            self.frame_skip = 2  # 3x speedup
+        elif self.speed_profile == "fast":
+            self.frame_skip = 1  # 2x speedup (optimal balance)
+        else:
+            self.frame_skip = 0  # 1x precision scan
 
     def _configure_scenedetect(self, scene_manager: SceneManager) -> None:
         """Adds appropriate detectors to SceneManager based on configuration."""
@@ -181,7 +191,7 @@ class VideoSceneDetector:
         if progress_callback:
             progress_callback(0.3, "Analyzing video frames for scene transitions...")
 
-        scene_manager.detect_scenes(video=video)
+        scene_manager.detect_scenes(video=video, frame_skip=self.frame_skip)
         scene_list = scene_manager.get_scene_list()
 
         results: List[SceneInfo] = []
@@ -261,7 +271,8 @@ class VideoSceneDetector:
 
         fps = meta.fps if meta.fps > 0 else 30.0
         total_frames = meta.total_frames
-        sample_step = max(1, int(fps / 10))  # Sample every 2-3 frames for high temporal accuracy
+        divisor = 4 if self.speed_profile == "turbo" else 8 if self.speed_profile == "fast" else 15
+        sample_step = max(1, int(fps / divisor))  # Calibrated sample step for high speed and temporal accuracy
 
         scene_cut_frames = [0]
         prev_hist = None

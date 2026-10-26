@@ -125,6 +125,7 @@ def export_summary_json(
     summary: VideoSummaryReport,
     scenes: List[SceneInfo],
     output_json_path: Path,
+    narrative: Optional[Any] = None,
 ) -> Path:
     """Exports complete metadata, summary metrics, and scene list to structured JSON."""
     output_json_path = Path(output_json_path).resolve()
@@ -133,6 +134,7 @@ def export_summary_json(
     payload = {
         "metadata": metadata.to_dict(),
         "summary": summary.to_dict(),
+        "narrative": narrative.to_dict() if narrative else None,
         "scenes": [s.to_dict() for s in scenes],
     }
 
@@ -152,13 +154,14 @@ def export_summary_markdown(
     summary: VideoSummaryReport,
     scenes: List[SceneInfo],
     output_md_path: Path,
+    narrative: Optional[Any] = None,
 ) -> Path:
     """Generates a clean, formatted Markdown report of video analysis results."""
     output_md_path = Path(output_md_path).resolve()
     output_md_path.parent.mkdir(parents=True, exist_ok=True)
 
     lines = [
-        "# ClipMind AI — Video Intelligence & Scene Summary Report",
+        f"# {narrative.title_suggestion if narrative else 'ClipMind AI — Video Intelligence Report'}",
         "",
         f"**File Analyzed:** `{metadata.filename}`  ",
         f"**Resolution:** {metadata.width}x{metadata.height} ({metadata.aspect_ratio})  ",
@@ -167,6 +170,23 @@ def export_summary_markdown(
         f"**Codec:** {metadata.fourcc_codec}  ",
         f"**File Size:** {metadata.file_size_mb} MB  ",
         "",
+    ]
+
+    if narrative:
+        lines.extend([
+            "---",
+            "",
+            "## Executive Narrative & Visual Atmosphere",
+            "",
+            f"**Synopsis:** {narrative.executive_synopsis}  ",
+            f"**Visual Atmosphere:** {narrative.visual_atmosphere}  ",
+            f"**Primary Mood:** {narrative.primary_mood}  ",
+            f"**Tempo Rhythm:** {narrative.tempo_rhythm_summary}  ",
+            f"**Dominant Color Palette:** {', '.join(narrative.dominant_palette_hex)}  ",
+            "",
+        ])
+
+    lines.extend([
         "---",
         "",
         "## Scene & Pacing Analytics",
@@ -183,7 +203,7 @@ def export_summary_markdown(
         "",
         "## Narrative & Structural Breakdown",
         "",
-    ]
+    ])
 
     for item in summary.narrative_breakdown:
         lines.append(f"### {item['phase']}")
