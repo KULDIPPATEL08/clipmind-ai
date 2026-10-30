@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from pathlib import Path
 import subprocess
-from typing import Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import cv2
 
@@ -278,3 +278,94 @@ def extract_scene_clips(
         cap.release()
 
     return clip_paths
+
+
+def extract_fixed_interval_clips(
+    video_path: Path,
+    start_seconds: float,
+    end_seconds: float,
+    clip_duration_seconds: float,
+    output_dir: Path,
+    progress_callback: Optional[Callable[[float, str], None]] = None,
+) -> List[Dict[str, Any]]:
+    """Slices a designated video time window into uniform fixed-duration clips (e.g. 60s clips).
+
+    Args:
+        video_path: Source video path.
+        start_seconds: Ingestion start timestamp in seconds (e.g., 0.0s).
+        end_seconds: Ingestion end timestamp in seconds (e.g., 350.0s).
+        clip_duration_seconds: Fixed duration of each clip (e.g., 60.0s).
+        output_dir: Directory where clips will be written.
+        progress_callback: Optional progress reporter callback.
+
+    Returns:
+        List of dictionaries with clip metadata (path, duration, timecodes, size).
+    """
+    video_path = Path(video_path).resolve()
+    output_dir = Path(output_dir).resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if start_seconds > end_seconds:
+        start_seconds, end_seconds = end_seconds, start_seconds
+    start_seconds = max(0.0, float(start_seconds))
+    end_seconds = max(start_seconds + 0.1, float(end_seconds))
+    clip_duration_seconds = max(1.0, float(clip_duration_seconds))
+
+    total_window = end_seconds - start_seconds
+    if total_window <= 0.2:
+        return []
+
+    # Build discrete intervals
+    intervals = []
+    curr_start = start_seconds
+    idx = 1
+    while curr_start < end_seconds:
+        curr_end = min(end_seconds, curr_start + clip_duration_seconds)
+        if (curr_end - curr_start) >= 0.5:
+            intervals.append((idx, curr_start, curr_end))
+            idx += 1
+        curr_start = curr_end
+
+    if not intervals:
+        return []
+
+    results: List[Dict[str, Any]] = []
+    total_count = len(intervals)
+
+    for i, (clip_num, c_start, c_end) in enumerate(intervals, start=1):
+        c_dur = c_end - c_start
+        start_slug = seconds_to_timecode(c_start).replace(":", "-").replace(".", "_")
+        end_slug = seconds_to_timecode(c_end).replace(":", "-").replace(".", "_")
+        clip_name = f"interval_clip_{clip_num:03d}_{int(c_dur)}s_{start_slug}_to_{end_slug}.mp4"
+        clip_path = output_dir / clip_name
+
+        if progress_callback:
+            progress_callback(
+                (i - 1) / total_count,
+                f"Slicing fixed clip {i}/{total_count} ({seconds_to_timecode(c_start)} ➔ {seconds_to_timecode(c_end)}, Sound Active)...",
+            )
+
+        success = extract_single_custom_clip(
+            video_path=video_path,
+            start_seconds=c_start,
+            end_seconds=c_end,
+            output_path=clip_path,
+        )
+
+        if success and clip_path.exists() and clip_path.stat().st_size > 0:
+            results.append({
+                "clip_index": clip_num,
+                "start_sec": round(c_start, 2),
+                "end_sec": round(c_end, 2),
+                "duration_sec": round(c_dur, 2),
+                "start_timecode": seconds_to_timecode(c_start),
+                "end_timecode": seconds_to_timecode(c_end),
+                "clip_path": str(clip_path),
+                "clip_filename": clip_name,
+                "size_mb": round(clip_path.stat().st_size / (1024 * 1024), 2),
+            })
+
+    if progress_callback:
+        progress_callback(1.0, f"Generated {len(results)} fixed-duration clips!")
+
+    return results

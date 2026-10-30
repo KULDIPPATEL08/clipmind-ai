@@ -6,7 +6,7 @@ import csv
 import json
 import zipfile
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from clipmind.analysis.summary import VideoSummaryReport
 from clipmind.exceptions import ExportError
@@ -84,6 +84,44 @@ def create_video_clips_zip(
     except Exception as e:
         logger.error("Failed creating video clips ZIP: %s", e)
         raise ExportError(f"Failed to create video clips archive: {e}")
+
+
+def create_interval_clips_zip(
+    interval_clips: List[Dict[str, Any]],
+    output_zip_path: Path,
+) -> Path:
+    """Packages all generated fixed-interval video clips into a compressed ZIP archive."""
+    output_zip_path = Path(output_zip_path).resolve()
+    output_zip_path.parent.mkdir(parents=True, exist_ok=True)
+
+    valid_clips = []
+    for item in interval_clips:
+        c_path = Path(item.get("clip_path", ""))
+        if c_path.exists():
+            arc_name = item.get("clip_filename") or c_path.name
+            valid_clips.append((c_path, arc_name))
+
+    if not valid_clips:
+        raise ExportError(
+            "No interval clips found to package into ZIP archive.",
+            user_friendly_message="No fixed-interval video clips are available for download.",
+        )
+
+    try:
+        with zipfile.ZipFile(output_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for clip_path, arc_name in valid_clips:
+                zipf.write(clip_path, arcname=arc_name)
+
+        logger.info(
+            "Created fixed-interval clips ZIP archive with %d video clips: %s",
+            len(valid_clips),
+            output_zip_path.name,
+        )
+        return output_zip_path
+    except Exception as e:
+        logger.error("Failed creating interval clips ZIP: %s", e)
+        raise ExportError(f"Failed to create interval clips archive: {e}")
+
 
 
 def export_scenes_csv(scenes: List[SceneInfo], output_csv_path: Path) -> Path:

@@ -15,6 +15,7 @@ from clipmind.analysis.summary import generate_video_summary
 from clipmind.config import config
 from clipmind.exceptions import ClipMindError
 from clipmind.export.exporter import (
+    create_interval_clips_zip,
     create_keyframe_zip,
     create_video_clips_zip,
     export_scenes_csv,
@@ -34,7 +35,9 @@ from clipmind.ui.components import (
     render_ai_cockpit_status_bar,
     render_ai_copilot_chatbot,
     render_brand_header,
+    render_fixed_interval_cutter,
     render_full_video_narrative_hero,
+    render_interval_clips_gallery,
     render_keyframe_gallery,
     render_landing_showcase,
     render_metadata_cards,
@@ -124,6 +127,8 @@ def reset_all_state() -> None:
         "last_custom_clip_meta", "clip_trim_slider",
         "trim_start_val", "trim_end_val",
         "custom_trim_slider", "num_trim_start", "num_trim_end",
+        "interval_win_start", "interval_win_end", "interval_chunk_len",
+        "generated_interval_clips", "generated_interval_zip",
     ]
     for k in keys_to_clear:
         st.session_state.pop(k, None)
@@ -244,130 +249,145 @@ def main() -> None:
         </div>"""
     )
 
-    # Layout: Left = Video Preview & Media Specs, Right = Studio Controls
+    # Prepare physical video path on disk for immediate extraction & trimming tools
+    staging_dir = config.base_temp_dir / "clipmind_staged_media"
+    staging_dir.mkdir(parents=True, exist_ok=True)
+    if is_demo_staged:
+        staged_video_path = staging_dir / "demo_synthetic_preview.mp4"
+        create_demo_synthetic_video(staged_video_path)
+    else:
+        staged_video_path = staging_dir / uploaded_file.name
+        if not staged_video_path.exists() or staged_video_path.stat().st_size != len(uploaded_file.getvalue()):
+            with open(staged_video_path, "wb") as f:
+                f.write(uploaded_file.getvalue())
+
+    # Cache metadata for instant UI responsiveness
+    meta_cache_key = f"staged_meta_{staged_video_path.name}_{staged_video_path.stat().st_size}"
+    if meta_cache_key in st.session_state:
+        staged_metadata = st.session_state[meta_cache_key]
+    else:
+        staged_metadata = extract_video_metadata(staged_video_path)
+        st.session_state[meta_cache_key] = staged_metadata
+
+    # Layout: Left = Video Preview & Media Specs, Right = Studio Controls & Slicing Suite
     col_preview, col_controls = st.columns([1, 1], gap="large")
 
     with col_preview:
         st.markdown("##### 📺 Video Monitor & Audio Verification")
-
-        if is_demo_staged:
-            demo_cache_dir = config.base_temp_dir / "clipmind_demo_preview"
-            demo_cache_dir.mkdir(parents=True, exist_ok=True)
-            demo_video_file = demo_cache_dir / "demo_synthetic_preview.mp4"
-            create_demo_synthetic_video(demo_video_file)
-
-            st.video(str(demo_video_file))
-
-            render_html(
-                """<div class="staged-video-card">
-                    <div class="staged-header">
-                        <div class="staged-title">
-                            <span>🎬 Synthetic Demo Video</span>
-                        </div>
-                        <span class="audio-sound-active-badge">🔊 Sound Preserved</span>
-                    </div>
-                    <div class="staged-details-grid">
-                        <div class="staged-detail-item">Filename: <b>demo_synthetic.mp4</b></div>
-                        <div class="staged-detail-item">Container: <b>MP4</b></div>
-                        <div class="staged-detail-item">Duration: <b>6.0s (4 Scenes)</b></div>
-                        <div class="staged-detail-item">Frame Rate: <b>30 FPS</b></div>
-                    </div>
-                </div>"""
-            )
-
-        elif is_upload_staged and uploaded_file is not None:
+        try:
+            st.video(str(staged_video_path))
+        except Exception:
             try:
                 st.video(uploaded_file)
             except Exception:
                 st.warning("⚠️ Could not preview this video in browser. It will still be processed correctly.")
-            size_mb = round(len(uploaded_file.getvalue()) / (1024 * 1024), 2)
-            container_ext = uploaded_file.name.split(".")[-1].upper()
 
-            render_html(
-                f"""<div class="staged-video-card">
-                    <div class="staged-header">
-                        <div class="staged-title">
-                            <span>🎬 Uploaded Video Staged</span>
-                        </div>
-                        <span class="audio-sound-active-badge">🔊 Sound Preserved</span>
+        render_html(
+            f"""<div class="staged-video-card">
+                <div class="staged-header">
+                    <div class="staged-title">
+                        <span>🎬 {staged_metadata.filename}</span>
                     </div>
-                    <div class="staged-details-grid">
-                        <div class="staged-detail-item">Filename: <b>{uploaded_file.name}</b></div>
-                        <div class="staged-detail-item">Container: <b>{container_ext}</b></div>
-                        <div class="staged-detail-item">File Size: <b>{size_mb} MB</b></div>
-                        <div class="staged-detail-item">Pipeline: <b>Armed & Ready</b></div>
-                    </div>
-                </div>"""
-            )
+                    <span class="audio-sound-active-badge">🔊 Sound Preserved</span>
+                </div>
+                <div class="staged-details-grid">
+                    <div class="staged-detail-item">Duration: <b>{staged_metadata.duration_formatted} ({staged_metadata.duration_seconds:.1f}s)</b></div>
+                    <div class="staged-detail-item">Resolution: <b>{staged_metadata.width}x{staged_metadata.height} ({staged_metadata.aspect_ratio})</b></div>
+                    <div class="staged-detail-item">Frame Rate: <b>{staged_metadata.fps} FPS</b></div>
+                    <div class="staged-detail-item">File Size: <b>{staged_metadata.file_size_mb} MB ({staged_metadata.fourcc_codec})</b></div>
+                </div>
+            </div>"""
+        )
 
         if st.button("✖ Change / Choose Another Video", use_container_width=True):
             reset_all_state()
             st.rerun()
 
     with col_controls:
-        st.markdown("##### 🎛️ Studio Intelligence Settings & Dials")
-        st.caption("Adjust your speed profile, cut sensitivity, and slicing dials below before starting.")
+        st.markdown("##### 🎛️ Studio Intelligence & Slicing Suite")
+        st.caption("Slice custom fixed-duration clips right now, or tune AI detection dials for full analysis.")
 
-        # Dial 1: Speed Engine
-        st.markdown("###### ⚡ Speed & Acceleration Profile")
-        speed_choice = st.radio(
-            "Processing Speed Profile",
-            options=[
-                "⚡ Hyper-Turbo (3x Speed • Recommended)",
-                "⚖️ Balanced Fast (2x Speed)",
-                "🎯 Studio Precision (1x Detailed)",
-            ],
-            index=0,
-            help="Hyper-Turbo uses calibrated frame skipping to deliver blazing fast processing on standard CPUs.",
-        )
-        speed_map = {
-            "⚡ Hyper-Turbo (3x Speed • Recommended)": "turbo",
-            "⚖️ Balanced Fast (2x Speed)": "fast",
-            "🎯 Studio Precision (1x Detailed)": "precision",
-        }
-        speed_profile = speed_map[speed_choice]
+        tab_slicer, tab_trimmer, tab_dials = st.tabs([
+            "✂️ Fixed 60s/Custom Clip Slicer",
+            "🎯 Single Clip Trimmer",
+            "⚙️ AI Pipeline Dials",
+        ])
 
-        # Dial 2: Scene Cut Engine
-        st.markdown("###### ⚙️ Scene Cut Detection Engine")
-        detector_choice = st.selectbox(
-            "Detection Engine Mode",
-            options=[
-                "Hybrid (Best Quality — Adaptive + Content)",
-                "Adaptive (Lighting & Camera Motion Compensated)",
-                "Content (Fast Hard Cut Detection)",
-                "Threshold (Fade In/Out Transitions)",
-            ],
-            index=0,
-            help="Hybrid combines adaptive rolling frame comparison and content color differencing for maximum cut accuracy.",
-        )
-        detector_map = {
-            "Hybrid (Best Quality — Adaptive + Content)": "hybrid",
-            "Adaptive (Lighting & Camera Motion Compensated)": "adaptive",
-            "Content (Fast Hard Cut Detection)": "content",
-            "Threshold (Fade In/Out Transitions)": "threshold",
-        }
-        detector_type = detector_map[detector_choice]
+        with tab_slicer:
+            render_fixed_interval_cutter(
+                video_path=staged_video_path,
+                metadata=staged_metadata,
+                output_dir=staging_dir / "interval_clips",
+            )
 
-        c_s1, c_s2 = st.columns(2)
-        with c_s1:
-            if detector_type in ["hybrid", "adaptive"]:
-                adaptive_thresh = st.slider("Adaptive Sensitivity", 1.5, 6.0, 3.0, 0.2)
-            else:
-                adaptive_thresh = 3.0
-            threshold = st.slider("Content Cut Threshold", 10.0, 50.0, float(config.default_content_threshold), 1.0)
-        with c_s2:
-            min_scene_frames = st.slider("Min Scene Length (Frames)", 5, 90, config.default_min_scene_length_frames, 5)
-            keyframe_strategy = st.selectbox("Representative Frame", ["middle", "start", "end"], index=0)
+        with tab_trimmer:
+            render_precision_clip_trimmer(
+                video_path=staged_video_path,
+                metadata=staged_metadata,
+                output_dir=staging_dir / "custom_clips",
+            )
 
-        # Dial 3: Lossless Audio Slicing & Keyframes
-        st.markdown("###### 🎬 Lossless Video Slicing & Keyframe Options")
-        c_k1, c_k2 = st.columns(2)
-        with c_k1:
-            generate_clips = st.checkbox("✂️ Generate Video Clips (100% Audio Intact)", value=True)
-            enable_dedup = st.checkbox("🖼️ Keyframe Deduplication", value=True)
-        with c_k2:
-            max_clips = st.slider("Max Video Clips Limit", 5, 50, 25, 5)
-            max_keyframes = st.slider("Max Keyframes Limit", 5, 100, 30, 5)
+        with tab_dials:
+            # Dial 1: Speed Engine
+            st.markdown("###### ⚡ Speed & Acceleration Profile")
+            speed_choice = st.radio(
+                "Processing Speed Profile",
+                options=[
+                    "⚡ Hyper-Turbo (3x Speed • Recommended)",
+                    "⚖️ Balanced Fast (2x Speed)",
+                    "🎯 Studio Precision (1x Detailed)",
+                ],
+                index=0,
+                help="Hyper-Turbo uses calibrated frame skipping to deliver blazing fast processing on standard CPUs.",
+            )
+            speed_map = {
+                "⚡ Hyper-Turbo (3x Speed • Recommended)": "turbo",
+                "⚖️ Balanced Fast (2x Speed)": "fast",
+                "🎯 Studio Precision (1x Detailed)": "precision",
+            }
+            speed_profile = speed_map[speed_choice]
+
+            # Dial 2: Scene Cut Engine
+            st.markdown("###### ⚙️ Scene Cut Detection Engine")
+            detector_choice = st.selectbox(
+                "Detection Engine Mode",
+                options=[
+                    "Hybrid (Best Quality — Adaptive + Content)",
+                    "Adaptive (Lighting & Camera Motion Compensated)",
+                    "Content (Fast Hard Cut Detection)",
+                    "Threshold (Fade In/Out Transitions)",
+                ],
+                index=0,
+                help="Hybrid combines adaptive rolling frame comparison and content color differencing for maximum cut accuracy.",
+            )
+            detector_map = {
+                "Hybrid (Best Quality — Adaptive + Content)": "hybrid",
+                "Adaptive (Lighting & Camera Motion Compensated)": "adaptive",
+                "Content (Fast Hard Cut Detection)": "content",
+                "Threshold (Fade In/Out Transitions)": "threshold",
+            }
+            detector_type = detector_map[detector_choice]
+
+            c_s1, c_s2 = st.columns(2)
+            with c_s1:
+                if detector_type in ["hybrid", "adaptive"]:
+                    adaptive_thresh = st.slider("Adaptive Sensitivity", 1.5, 6.0, 3.0, 0.2)
+                else:
+                    adaptive_thresh = 3.0
+                threshold = st.slider("Content Cut Threshold", 10.0, 50.0, float(config.default_content_threshold), 1.0)
+            with c_s2:
+                min_scene_frames = st.slider("Min Scene Length (Frames)", 5, 90, config.default_min_scene_length_frames, 5)
+                keyframe_strategy = st.selectbox("Representative Frame", ["middle", "start", "end"], index=0)
+
+            # Dial 3: Lossless Audio Slicing & Keyframes
+            st.markdown("###### 🎬 Lossless Video Slicing & Keyframe Options")
+            c_k1, c_k2 = st.columns(2)
+            with c_k1:
+                generate_clips = st.checkbox("✂️ Generate Scene Video Clips (100% Audio Intact)", value=True)
+                enable_dedup = st.checkbox("🖼️ Keyframe Deduplication", value=True)
+            with c_k2:
+                max_clips = st.slider("Max Video Clips Limit", 5, 50, 25, 5)
+                max_keyframes = st.slider("Max Keyframes Limit", 5, 100, 30, 5)
 
     # Step 3: Launch Action Bar
     st.markdown("---")
@@ -548,6 +568,8 @@ def main() -> None:
             "json_path": json_path,
             "md_path": md_path,
             "contact_sheet_path": contact_sheet_path if contact_sheet_path.exists() else None,
+            "interval_clips": st.session_state.get("generated_interval_clips"),
+            "interval_zip": st.session_state.get("generated_interval_zip"),
         }
         st.rerun()
 
@@ -649,9 +671,10 @@ def render_results_workspace() -> None:
                     st.caption(f"⚠️ Video preview unavailable: {_ve}")
 
     # Exploration Tabs
-    tab_copilot, tab_clips, tab_storyboard, tab_analytics, tab_manifest, tab_export = st.tabs([
+    tab_copilot, tab_interval_slicer, tab_clips, tab_storyboard, tab_analytics, tab_manifest, tab_export = st.tabs([
         "🤖 AI Video Copilot",
-        "✂️ Scene Video Clips (Sound Intact)",
+        "✂️ Fixed 60s/Interval Slicer",
+        "🎬 Scene Cut Clips (Sound Intact)",
         "🖼️ Keyframes & Storyboard",
         "📊 Analytics & Narrative",
         "📋 Scene Table Manifest",
@@ -660,6 +683,28 @@ def render_results_workspace() -> None:
 
     with tab_copilot:
         render_ai_copilot_chatbot(meta, scenes, summary, narrative)
+
+    with tab_interval_slicer:
+        if session_obj:
+            _clip_vid = session_obj.video_dir / meta.filename
+            if not _clip_vid.exists():
+                _cvids = list(session_obj.video_dir.glob("video_*.*"))
+                _clip_vid = _cvids[0] if _cvids else None
+            if _clip_vid and Path(_clip_vid).exists():
+                render_fixed_interval_cutter(
+                    video_path=Path(_clip_vid),
+                    metadata=meta,
+                    output_dir=session_obj.clips_dir / "interval_clips",
+                )
+            else:
+                st.info("ℹ️ Source video file not accessible for interval slicing in this session.")
+        elif st.session_state.get("generated_interval_clips"):
+            render_interval_clips_gallery(
+                interval_clips=st.session_state["generated_interval_clips"],
+                zip_path=st.session_state.get("generated_interval_zip"),
+            )
+        else:
+            st.info("ℹ️ No interval clips created yet.")
 
     with tab_clips:
         if session_obj:
@@ -712,6 +757,20 @@ def render_results_workspace() -> None:
     with tab_export:
         st.markdown("##### 📦 Export Intelligence Packages")
         st.write("Download complete analysis packages in standard industry formats.")
+
+        int_zip = results.get("interval_zip") or st.session_state.get("generated_interval_zip")
+        if int_zip and Path(int_zip).exists():
+            c_int_p = Path(int_zip)
+            st.markdown("###### ✂️ Fixed-Duration Interval Clips Package")
+            with open(c_int_p, "rb") as izf:
+                st.download_button(
+                    label=f"📦 Download Interval Clips ZIP ({round(c_int_p.stat().st_size / (1024 * 1024), 2)} MB)",
+                    data=izf.read(),
+                    file_name=c_int_p.name,
+                    mime="application/zip",
+                    key="dl_export_interval_zip",
+                    use_container_width=True,
+                )
 
         c1, c2, c3, c4, c5 = st.columns(5)
         with c1:
