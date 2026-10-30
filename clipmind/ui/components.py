@@ -340,39 +340,43 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
     )
 
     max_sec = max(0.5, float(metadata.duration_seconds))
+    min_clip_req = min(70.0, max_sec)
 
-    # Initialize session state for precision inputs if not set
+    # Initialize session state for precision inputs (timeline starts at 0.0s, minimum 70s)
     if "trim_start_val" not in st.session_state:
         st.session_state["trim_start_val"] = 0.0
     if "trim_end_val" not in st.session_state:
-        st.session_state["trim_end_val"] = min(max_sec, 30.0 if max_sec > 30.0 else max_sec)
+        st.session_state["trim_end_val"] = min_clip_req
 
-    # Clamp safely within boundaries
-    st.session_state["trim_start_val"] = max(0.0, min(float(st.session_state["trim_start_val"]), max_sec - 0.1))
-    st.session_state["trim_end_val"] = max(st.session_state["trim_start_val"] + 0.1, min(float(st.session_state["trim_end_val"]), max_sec))
+    # Clamp safely within boundaries with 70s minimum duration
+    st.session_state["trim_start_val"] = max(0.0, min(float(st.session_state["trim_start_val"]), max_sec - min_clip_req))
+    st.session_state["trim_end_val"] = max(
+        st.session_state["trim_start_val"] + min_clip_req,
+        min(float(st.session_state["trim_end_val"]), max_sec),
+    )
 
     # Quick preset chips
-    st.markdown("###### ⚡ Quick Presets")
+    st.markdown("###### ⚡ Quick Presets (Min 70s)")
     pr_col1, pr_col2, pr_col3, pr_col4, pr_col5 = st.columns(5)
     with pr_col1:
-        if st.button("📱 First 15s (Reels)", key="btn_pr_15", use_container_width=True):
+        if st.button("⏱️ Min Clip (70s)", key="btn_pr_70", use_container_width=True):
             st.session_state["trim_start_val"] = 0.0
-            st.session_state["trim_end_val"] = min(max_sec, 15.0)
+            st.session_state["trim_end_val"] = min_clip_req
             st.rerun()
     with pr_col2:
-        if st.button("⚡ First 30s", key="btn_pr_30", use_container_width=True):
+        if st.button("⚡ 90s Segment", key="btn_pr_90", use_container_width=True):
             st.session_state["trim_start_val"] = 0.0
-            st.session_state["trim_end_val"] = min(max_sec, 30.0)
+            st.session_state["trim_end_val"] = min(max_sec, max(min_clip_req, 90.0))
             st.rerun()
     with pr_col3:
-        if st.button("⏱️ First 60s", key="btn_pr_60", use_container_width=True):
+        if st.button("🎬 2 Mins (120s)", key="btn_pr_120", use_container_width=True):
             st.session_state["trim_start_val"] = 0.0
-            st.session_state["trim_end_val"] = min(max_sec, 60.0)
+            st.session_state["trim_end_val"] = min(max_sec, max(min_clip_req, 120.0))
             st.rerun()
     with pr_col4:
-        if st.button("🎬 First 5 Mins", key="btn_pr_300", use_container_width=True):
+        if st.button("🎬 5 Mins (300s)", key="btn_pr_300", use_container_width=True):
             st.session_state["trim_start_val"] = 0.0
-            st.session_state["trim_end_val"] = min(max_sec, 300.0)
+            st.session_state["trim_end_val"] = min(max_sec, max(min_clip_req, 300.0))
             st.rerun()
     with pr_col5:
         if st.button("🎞️ Full Video", key="btn_pr_all", use_container_width=True):
@@ -385,21 +389,28 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
 
     # Fine-tune boundary slider
     time_range = st.slider(
-        "Fine-Tune Boundary Slider (Seconds)",
+        "Fine-Tune Boundary Slider (Seconds • Min 70s)",
         min_value=0.0,
         max_value=max_sec,
         value=(cur_start, cur_end),
-        step=0.1,
+        step=0.5,
         format="%.1fs",
         key="custom_trim_slider",
-        help="Drag either handle to set the start and end cutoff points.",
+        help="Timeline starts at 0.0s. Drag handles to set cutoff points (minimum clip length is 70 seconds).",
     )
 
-    # Sync from slider to session state if user dragged it
+    # Sync from slider to session state if user dragged it, enforcing min 70s
     if time_range != (cur_start, cur_end):
-        st.session_state["trim_start_val"] = time_range[0]
-        st.session_state["trim_end_val"] = time_range[1]
-        cur_start, cur_end = time_range
+        s_val, e_val = time_range
+        if (e_val - s_val) < min_clip_req:
+            # Enforce 70s minimum duration
+            if e_val < max_sec:
+                e_val = min(max_sec, s_val + min_clip_req)
+            else:
+                s_val = max(0.0, e_val - min_clip_req)
+        st.session_state["trim_start_val"] = s_val
+        st.session_state["trim_end_val"] = e_val
+        cur_start, cur_end = s_val, e_val
 
     # Direct numeric input columns for exact precision
     c_s, c_e, c_summary = st.columns([1, 1, 1])
@@ -407,7 +418,7 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
         new_start = st.number_input(
             "Start Point (Seconds)",
             min_value=0.0,
-            max_value=max(0.0, max_sec - 0.1),
+            max_value=max(0.0, max_sec - min_clip_req),
             value=float(cur_start),
             step=0.5,
             format="%.1f",
@@ -416,14 +427,14 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
         st.caption(f"Timecode: `{seconds_to_timecode(new_start)}`")
         if abs(new_start - cur_start) > 0.05:
             st.session_state["trim_start_val"] = new_start
-            if new_start >= st.session_state["trim_end_val"]:
-                st.session_state["trim_end_val"] = min(max_sec, new_start + 1.0)
+            if (st.session_state["trim_end_val"] - new_start) < min_clip_req:
+                st.session_state["trim_end_val"] = min(max_sec, new_start + min_clip_req)
             st.rerun()
 
     with c_e:
         new_end = st.number_input(
-            "End Point (Seconds)",
-            min_value=0.1,
+            "End Point (Seconds • Min +70s)",
+            min_value=min(max_sec, cur_start + min_clip_req),
             max_value=max_sec,
             value=float(cur_end),
             step=0.5,
@@ -432,9 +443,9 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
         )
         st.caption(f"Timecode: `{seconds_to_timecode(new_end)}`")
         if abs(new_end - cur_end) > 0.05:
+            if (new_end - st.session_state["trim_start_val"]) < min_clip_req:
+                st.session_state["trim_start_val"] = max(0.0, new_end - min_clip_req)
             st.session_state["trim_end_val"] = new_end
-            if new_end <= st.session_state["trim_start_val"]:
-                st.session_state["trim_start_val"] = max(0.0, new_end - 1.0)
             st.rerun()
 
     # Active selection parameters
@@ -445,10 +456,15 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
     duration = max(0.1, sel_end - sel_start)
 
     with c_summary:
+        is_valid_len = duration >= min_clip_req or max_sec <= min_clip_req
+        status_color = "#38bdf8" if is_valid_len else "#f87171"
         render_html(
             f"""<div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 12px; margin-top: 4px;">
-                <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Selected Range Summary</div>
-                <div style="font-size: 1.05rem; font-weight: 800; color: #38bdf8; margin: 4px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Selected Range</span>
+                    <span class="badge-pill badge-extended" style="font-size: 0.65rem; padding: 2px 6px;">Min 70s</span>
+                </div>
+                <div style="font-size: 1.05rem; font-weight: 800; color: {status_color}; margin: 4px 0;">
                     {seconds_to_timecode(sel_start)} ➔ {seconds_to_timecode(sel_end)}
                 </div>
                 <div style="font-size: 0.8rem; color: #cbd5e1;">
@@ -459,6 +475,10 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
 
     st.markdown("")
     if st.button("⚡ Cut & Render Custom High-Quality Clip (With Audio)", type="primary", use_container_width=True):
+        if duration < min_clip_req and max_sec > min_clip_req:
+            st.error(f"⚠️ Minimum clip duration must be at least 70.0s (currently {duration:.1f}s). Please adjust your selection.")
+            return
+
         custom_clip_name = f"custom_clip_{int(sel_start)}s_to_{int(sel_end)}s.mp4"
         custom_clip_path = output_dir / custom_clip_name
         with st.spinner(f"✂️ Cutting clip from {seconds_to_timecode(sel_start)} to {seconds_to_timecode(sel_end)} ({duration:.1f}s, Audio Preserved)..."):
