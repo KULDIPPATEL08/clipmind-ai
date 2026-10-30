@@ -12,7 +12,7 @@ from clipmind.analysis.chatbot import answer_video_query
 from clipmind.analysis.description import FullVideoNarrative, SceneDescription
 from clipmind.analysis.summary import VideoSummaryReport
 from clipmind.video.clipper import extract_single_custom_clip
-from clipmind.video.detector import SceneInfo
+from clipmind.video.detector import SceneInfo, seconds_to_timecode
 from clipmind.video.keyframe import Keyframe
 from clipmind.video.metadata import VideoMetadata
 
@@ -326,6 +326,7 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
             "You can still download the automatically extracted scene clips below."
         )
         return
+
     render_html(
         """<div class="precision-trimmer-card">
             <div class="trimmer-title">
@@ -333,52 +334,172 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
                 <span class="audio-sound-active-badge">🔊 High-Fidelity Audio Enabled</span>
             </div>
             <div style="font-size: 0.86rem; color: #94a3b8; margin-bottom: 12px;">
-                Drag the timecode sliders or input precise seconds to render a custom high-quality clip from anywhere in the video.
+                Drag the timecode slider or enter exact start and end timestamps to render a custom high-quality clip with 100% audio preserved.
             </div>
         </div>"""
     )
 
-    t_col1, t_col2 = st.columns([3, 1])
-    with t_col1:
-        max_sec = max(0.5, float(metadata.duration_seconds))
-        default_end = min(max_sec, 3.0)
-        time_range = st.slider(
-            "Select Precise Start & End Boundary (Seconds)",
-            min_value=0.0,
-            max_value=max_sec,
-            value=(0.0, default_end),
-            step=0.1,
-            format="%.1fs",
-            key="custom_trim_slider",
-        )
-    with t_col2:
-        st.caption("Selected Range")
-        sel_start, sel_end = time_range
-        duration = max(0.1, sel_end - sel_start)
-        st.markdown(f"`{sel_start:.2f}s` ➔ `{sel_end:.2f}s` (**{duration:.2f}s**)")
+    max_sec = max(0.5, float(metadata.duration_seconds))
 
+    # Initialize session state for precision inputs if not set
+    if "trim_start_val" not in st.session_state:
+        st.session_state["trim_start_val"] = 0.0
+    if "trim_end_val" not in st.session_state:
+        st.session_state["trim_end_val"] = min(max_sec, 30.0 if max_sec > 30.0 else max_sec)
+
+    # Clamp safely within boundaries
+    st.session_state["trim_start_val"] = max(0.0, min(float(st.session_state["trim_start_val"]), max_sec - 0.1))
+    st.session_state["trim_end_val"] = max(st.session_state["trim_start_val"] + 0.1, min(float(st.session_state["trim_end_val"]), max_sec))
+
+    # Quick preset chips
+    st.markdown("###### ⚡ Quick Presets")
+    pr_col1, pr_col2, pr_col3, pr_col4, pr_col5 = st.columns(5)
+    with pr_col1:
+        if st.button("📱 First 15s (Reels)", key="btn_pr_15", use_container_width=True):
+            st.session_state["trim_start_val"] = 0.0
+            st.session_state["trim_end_val"] = min(max_sec, 15.0)
+            st.rerun()
+    with pr_col2:
+        if st.button("⚡ First 30s", key="btn_pr_30", use_container_width=True):
+            st.session_state["trim_start_val"] = 0.0
+            st.session_state["trim_end_val"] = min(max_sec, 30.0)
+            st.rerun()
+    with pr_col3:
+        if st.button("⏱️ First 60s", key="btn_pr_60", use_container_width=True):
+            st.session_state["trim_start_val"] = 0.0
+            st.session_state["trim_end_val"] = min(max_sec, 60.0)
+            st.rerun()
+    with pr_col4:
+        if st.button("🎬 First 5 Mins", key="btn_pr_300", use_container_width=True):
+            st.session_state["trim_start_val"] = 0.0
+            st.session_state["trim_end_val"] = min(max_sec, 300.0)
+            st.rerun()
+    with pr_col5:
+        if st.button("🎞️ Full Video", key="btn_pr_all", use_container_width=True):
+            st.session_state["trim_start_val"] = 0.0
+            st.session_state["trim_end_val"] = max_sec
+            st.rerun()
+
+    cur_start = float(st.session_state["trim_start_val"])
+    cur_end = float(st.session_state["trim_end_val"])
+
+    # Fine-tune boundary slider
+    time_range = st.slider(
+        "Fine-Tune Boundary Slider (Seconds)",
+        min_value=0.0,
+        max_value=max_sec,
+        value=(cur_start, cur_end),
+        step=0.1,
+        format="%.1fs",
+        key="custom_trim_slider",
+        help="Drag either handle to set the start and end cutoff points.",
+    )
+
+    # Sync from slider to session state if user dragged it
+    if time_range != (cur_start, cur_end):
+        st.session_state["trim_start_val"] = time_range[0]
+        st.session_state["trim_end_val"] = time_range[1]
+        cur_start, cur_end = time_range
+
+    # Direct numeric input columns for exact precision
+    c_s, c_e, c_summary = st.columns([1, 1, 1])
+    with c_s:
+        new_start = st.number_input(
+            "Start Point (Seconds)",
+            min_value=0.0,
+            max_value=max(0.0, max_sec - 0.1),
+            value=float(cur_start),
+            step=0.5,
+            format="%.1f",
+            key="num_trim_start",
+        )
+        st.caption(f"Timecode: `{seconds_to_timecode(new_start)}`")
+        if abs(new_start - cur_start) > 0.05:
+            st.session_state["trim_start_val"] = new_start
+            if new_start >= st.session_state["trim_end_val"]:
+                st.session_state["trim_end_val"] = min(max_sec, new_start + 1.0)
+            st.rerun()
+
+    with c_e:
+        new_end = st.number_input(
+            "End Point (Seconds)",
+            min_value=0.1,
+            max_value=max_sec,
+            value=float(cur_end),
+            step=0.5,
+            format="%.1f",
+            key="num_trim_end",
+        )
+        st.caption(f"Timecode: `{seconds_to_timecode(new_end)}`")
+        if abs(new_end - cur_end) > 0.05:
+            st.session_state["trim_end_val"] = new_end
+            if new_end <= st.session_state["trim_start_val"]:
+                st.session_state["trim_start_val"] = max(0.0, new_end - 1.0)
+            st.rerun()
+
+    # Active selection parameters
+    sel_start = float(st.session_state["trim_start_val"])
+    sel_end = float(st.session_state["trim_end_val"])
+    if sel_start > sel_end:
+        sel_start, sel_end = sel_end, sel_start
+    duration = max(0.1, sel_end - sel_start)
+
+    with c_summary:
+        render_html(
+            f"""<div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 12px; margin-top: 4px;">
+                <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Selected Range Summary</div>
+                <div style="font-size: 1.05rem; font-weight: 800; color: #38bdf8; margin: 4px 0;">
+                    {seconds_to_timecode(sel_start)} ➔ {seconds_to_timecode(sel_end)}
+                </div>
+                <div style="font-size: 0.8rem; color: #cbd5e1;">
+                    Duration: <b>{duration:.1f}s</b> ({(duration / max_sec) * 100:.1f}% of video)
+                </div>
+            </div>"""
+        )
+
+    st.markdown("")
     if st.button("⚡ Cut & Render Custom High-Quality Clip (With Audio)", type="primary", use_container_width=True):
-        custom_clip_path = output_dir / f"custom_clip_{sel_start:.1f}s_to_{sel_end:.1f}s.mp4"
-        try:
-            success = extract_single_custom_clip(
-                video_path=video_path,
-                start_seconds=sel_start,
-                end_seconds=sel_end,
-                output_path=custom_clip_path,
-            )
-            if success and custom_clip_path.exists():
-                st.session_state["last_custom_clip"] = str(custom_clip_path)
-                st.success(f"✅ Custom clip cut successfully ({duration:.2f}s, Audio preserved)!")
-            else:
-                st.error("⚠️ Clip extraction failed. Ensure ffmpeg is installed or try a different video format.")
-        except Exception as clip_err:
-            st.error(f"⚠️ Custom clip error: {clip_err}")
+        custom_clip_name = f"custom_clip_{int(sel_start)}s_to_{int(sel_end)}s.mp4"
+        custom_clip_path = output_dir / custom_clip_name
+        with st.spinner(f"✂️ Cutting clip from {seconds_to_timecode(sel_start)} to {seconds_to_timecode(sel_end)} ({duration:.1f}s, Audio Preserved)..."):
+            try:
+                success = extract_single_custom_clip(
+                    video_path=video_path,
+                    start_seconds=sel_start,
+                    end_seconds=sel_end,
+                    output_path=custom_clip_path,
+                )
+                if success and custom_clip_path.exists() and custom_clip_path.stat().st_size > 0:
+                    st.session_state["last_custom_clip"] = str(custom_clip_path)
+                    st.session_state["last_custom_clip_meta"] = {
+                        "name": custom_clip_name,
+                        "duration": duration,
+                        "start_tc": seconds_to_timecode(sel_start),
+                        "end_tc": seconds_to_timecode(sel_end),
+                        "size_mb": round(custom_clip_path.stat().st_size / (1024 * 1024), 2),
+                    }
+                    st.success(f"✅ Custom clip ready! ({seconds_to_timecode(sel_start)} ➔ {seconds_to_timecode(sel_end)}, {duration:.1f}s, Sound Preserved)")
+                else:
+                    st.error("⚠️ Clip extraction failed. Please try a slightly different time range.")
+            except Exception as clip_err:
+                st.error(f"⚠️ Custom clip error: {clip_err}")
 
     # Show the last successfully rendered custom clip
     last_clip_key = st.session_state.get("last_custom_clip")
     if last_clip_key and Path(last_clip_key).exists():
         c_path = Path(last_clip_key)
+        clip_meta = st.session_state.get("last_custom_clip_meta", {})
+        clip_size = clip_meta.get("size_mb", round(c_path.stat().st_size / (1024 * 1024), 2))
+        clip_dur = clip_meta.get("duration", duration)
+
         st.markdown("##### 🎬 Custom Clip Monitor (Lossless Sound)")
+        render_html(
+            f"""<div style="display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;">
+                <span class="badge-pill badge-standard">⚡ Duration: {clip_dur:.1f}s</span>
+                <span class="badge-pill badge-extended">💾 Size: {clip_size} MB</span>
+                <span class="audio-sound-active-badge">🔊 Sound Preserved</span>
+            </div>"""
+        )
         try:
             st.video(str(c_path))
         except Exception:
@@ -386,11 +507,12 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
         try:
             with open(c_path, "rb") as cf:
                 st.download_button(
-                    label="⬇️ Download Custom Clip (MP4 with Sound)",
+                    label=f"⬇️ Download Custom Clip ({clip_size} MB MP4 with Sound)",
                     data=cf.read(),
                     file_name=c_path.name,
                     mime="video/mp4",
                     key="dl_custom_trim_clip",
+                    use_container_width=True,
                 )
         except OSError as cf_err:
             st.caption(f"⚠️ Download unavailable: {cf_err}")

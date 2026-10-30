@@ -54,10 +54,43 @@ def extract_single_custom_clip(
     output_path = Path(output_path).resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    duration = max(0.2, end_seconds - start_seconds)
+    # Ensure boundaries are properly ordered and non-negative
+    if start_seconds > end_seconds:
+        start_seconds, end_seconds = end_seconds, start_seconds
+    start_seconds = max(0.0, float(start_seconds))
+    end_seconds = max(start_seconds + 0.1, float(end_seconds))
+    duration = max(0.1, end_seconds - start_seconds)
+
     ffmpeg_exe = get_ffmpeg_binary()
 
     if ffmpeg_exe:
+        # Pass 1: Try lightning-fast lossless stream copy first (-c copy)
+        # This finishes in <0.5 seconds even for large 4K files and preserves 100% audio
+        try:
+            fast_cmd = [
+                ffmpeg_exe,
+                "-y",
+                "-ss", f"{start_seconds:.3f}",
+                "-i", str(video_path),
+                "-t", f"{duration:.3f}",
+                "-c", "copy",
+                "-movflags", "+faststart",
+                str(output_path),
+            ]
+            res_fast = subprocess.run(
+                fast_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=15,
+            )
+            if res_fast.returncode == 0 and output_path.exists() and output_path.stat().st_size > 1000:
+                logger.info("Custom clip extracted losslessly via FFmpeg copy: %s", output_path.name)
+                return True
+        except Exception as e_copy:
+            logger.debug("Fast stream-copy trim failed (%s), attempting full re-encode", e_copy)
+
+        # Pass 2: Fallback to frame-accurate ultrafast re-encoding
         try:
             cmd = [
                 ffmpeg_exe,
@@ -79,10 +112,10 @@ def extract_single_custom_clip(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                timeout=45,
+                timeout=120,
             )
             if result.returncode == 0 and output_path.exists() and output_path.stat().st_size > 0:
-                logger.info("Custom clip extracted with full audio via FFmpeg: %s", output_path.name)
+                logger.info("Custom clip extracted with re-encoded audio via FFmpeg: %s", output_path.name)
                 return True
         except Exception as e:
             logger.warning("FFmpeg custom clip extraction failed, falling back to OpenCV: %s", e)
