@@ -1,18 +1,26 @@
-"""Next-Level modern styling, glassmorphism, and cyber-aesthetic design tokens for ClipMind AI."""
+"""Next-Level modern styling — premium AI SaaS glassmorphism, GSAP-class animations, cinematic dark mode for ClipMind AI."""
 
 MAIN_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
+/* =========================================================================
+   PREMIUM DESIGN TOKENS — ClipMind AI Creator Studio
+   ========================================================================= */
 :root {
-    --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
-    --bg-main: #060911;
-    --bg-glass: rgba(15, 23, 42, 0.75);
-    --bg-glass-elevated: rgba(24, 34, 58, 0.85);
+    --font-sans: 'Space Grotesk', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --bg-void: #03050c;
+    --bg-deep: #060912;
+    --bg-glass: rgba(16, 24, 48, 0.72);
+    --bg-glass-elevated: rgba(22, 33, 62, 0.88);
+    --border-void: rgba(255, 255, 255, 0.05);
     --border-glass: rgba(255, 255, 255, 0.09);
-    --border-accent: rgba(99, 102, 241, 0.5);
+    --border-accent: rgba(99, 102, 241, 0.45);
+    --border-cyan: rgba(6, 182, 212, 0.35);
+    --border-pink: rgba(236, 72, 153, 0.35);
     --neon-indigo: #6366f1;
+    --neon-violet: #8b5cf6;
     --neon-cyan: #06b6d4;
     --neon-emerald: #10b981;
     --neon-pink: #ec4899;
@@ -20,21 +28,78 @@ MAIN_CSS = """
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
+    --text-accent: #a5b4fc;
 }
 
 html, body, [class*="css"] {
     font-family: var(--font-sans) !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
 }
 
-/* Background Cyber Grid */
+/* GLOBAL KEY ANIMATIONS */
+@keyframes gradientFlow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+@keyframes logoSheen {
+    0% { left: -60%; }
+    40%, 100% { left: 150%; }
+}
+
+@keyframes auroraRotate {
+    from { transform: rotate(0deg) scale(1.02); }
+    to { transform: rotate(360deg) scale(1.02); }
+}
+
+@keyframes borderGlow {
+    0%, 100% { border-color: rgba(99, 102, 241, 0.3); }
+    50% { border-color: rgba(6, 182, 212, 0.5); }
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.0); }
+    50% { box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.25); }
+}
+
+@keyframes scissorBob {
+    0%, 100% { transform: rotate(-8deg) scale(1); }
+    50% { transform: rotate(8deg) scale(1.12); }
+}
+
+@keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmerSweep {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+
+/* Respect prefers-reduced-motion: disable all animations for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+/* =========================================================================
+   AURORA ANIMATED BACKGROUND
+   ========================================================================= */
 .stApp {
-    background-color: var(--bg-main) !important;
-    background-image: 
-        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.07) 0%, transparent 40%),
-        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px) !important;
-    background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px !important;
+    background-color: var(--bg-void) !important;
+    background-image:
+        radial-gradient(ellipse 80% 60% at 10% -10%, rgba(99, 102, 241, 0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 90% 110%, rgba(6, 182, 212, 0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(139, 92, 246, 0.06) 0%, transparent 60%),
+        linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px) !important;
+    background-size: 100% 100%, 100% 100%, 100% 100%, 52px 52px, 52px 52px !important;
+    min-height: 100vh !important;
 }
 
 /* AI Cockpit Status Strip */
@@ -114,35 +179,51 @@ html, body, [class*="css"] {
 }
 
 .clipmind-logo-badge {
-    background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0891b2 100%);
     color: white;
+    font-family: var(--font-sans);
     font-weight: 900;
-    font-size: 20px;
-    padding: 9px 15px;
-    border-radius: 12px;
-    box-shadow: 0 0 25px rgba(79, 70, 229, 0.45);
-    letter-spacing: 0.05em;
+    font-size: 18px;
+    padding: 10px 16px;
+    border-radius: 14px;
+    box-shadow: 0 0 32px rgba(79, 70, 229, 0.55), inset 0 1px 0 rgba(255,255,255,0.22);
+    letter-spacing: 0.04em;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    position: relative;
+    overflow: hidden;
+}
+
+.clipmind-logo-badge::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -60%;
+    width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+    animation: logoSheen 4s infinite ease-in-out;
+    pointer-events: none;
 }
 
 .clipmind-header-text h1 {
-    font-size: 2.1rem !important;
+    font-size: 2.0rem !important;
     font-weight: 800 !important;
     margin: 0 !important;
-    background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+    line-height: 1.12 !important;
+    background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 40%, #94a3b8 100%);
     -webkit-background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
-    letter-spacing: -0.03em;
+    background-clip: text !important;
+    letter-spacing: -0.035em;
 }
 
 .clipmind-header-text p {
-    font-size: 0.92rem !important;
-    color: #94a3b8 !important;
-    margin: 3px 0 0 0 !important;
+    font-size: 0.87rem !important;
+    color: #64748b !important;
+    margin: 4px 0 0 0 !important;
     letter-spacing: -0.01em;
+    font-weight: 500;
 }
 
 /* Landing Page Hero Section */
@@ -485,18 +566,25 @@ div[data-testid="stTabs"] button[aria-selected="true"] {
 }
 
 /* Primary and Download Button Styling */
-button[kind="primary"], div.stButton > button, div.stDownloadButton > button {
-    border-radius: 10px !important;
+div.stButton > button, div.stDownloadButton > button {
+    font-family: var(--font-sans) !important;
+    border-radius: 12px !important;
     font-weight: 700 !important;
-    letter-spacing: 0.02em !important;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+    letter-spacing: 0.01em !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28) !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
 
 div.stButton > button:hover, div.stDownloadButton > button:hover {
     transform: translateY(-2px) !important;
-    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4) !important;
-    border-color: rgba(99, 102, 241, 0.8) !important;
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.38) !important;
+    border-color: rgba(99, 102, 241, 0.75) !important;
+}
+
+div.stButton > button:active {
+    transform: translateY(0px) !important;
 }
 
 /* =========================================================================
@@ -505,9 +593,9 @@ div.stButton > button:hover, div.stDownloadButton > button:hover {
 
 @keyframes scissorSlice {
     0% { transform: scale(1) rotate(0deg); }
-    25% { transform: scale(1.15) rotate(-15deg); }
-    50% { transform: scale(0.95) rotate(12deg); filter: drop-shadow(0 0 8px #ec4899); }
-    75% { transform: scale(1.1) rotate(-6deg); }
+    20% { transform: scale(1.2) rotate(-18deg); filter: drop-shadow(0 0 10px #ec4899); }
+    45% { transform: scale(0.92) rotate(14deg); }
+    70% { transform: scale(1.12) rotate(-8deg); }
     100% { transform: scale(1) rotate(0deg); }
 }
 
@@ -658,12 +746,23 @@ section[data-testid="stSidebar"] {
    ========================================================================= */
 
 .staged-video-card {
-    background: linear-gradient(135deg, rgba(20, 28, 48, 0.95) 0%, rgba(12, 18, 32, 0.98) 100%);
-    border: 1.5px solid rgba(6, 182, 212, 0.45);
-    border-radius: 18px;
-    padding: 24px 28px;
-    margin: 18px 0 24px 0;
-    box-shadow: 0 16px 40px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(16, 24, 50, 0.96) 0%, rgba(8, 14, 30, 0.99) 100%);
+    border: 1.5px solid rgba(6, 182, 212, 0.42);
+    border-radius: 22px;
+    padding: 26px 32px;
+    margin: 16px 0 24px 0;
+    box-shadow: 0 20px 55px rgba(6, 182, 212, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.staged-video-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, #06b6d4, #6366f1, #ec4899, #06b6d4);
+    background-size: 200% 100%;
+    animation: gradientFlow 4s ease-in-out infinite;
 }
 
 .staged-header {
@@ -719,12 +818,23 @@ section[data-testid="stSidebar"] {
    ========================================================================= */
 
 .copilot-card {
-    background: linear-gradient(135deg, rgba(20, 26, 44, 0.9) 0%, rgba(10, 14, 26, 0.95) 100%);
-    border: 1px solid rgba(99, 102, 241, 0.3);
-    border-radius: 18px;
-    padding: 24px 28px;
-    margin: 16px 0 24px 0;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+    background: linear-gradient(135deg, rgba(16, 22, 48, 0.93) 0%, rgba(6, 10, 24, 0.98) 100%);
+    border: 1.5px solid rgba(99, 102, 241, 0.28);
+    border-radius: 24px;
+    padding: 26px 30px;
+    margin: 14px 0 22px 0;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.58), 0 0 30px rgba(99, 102, 241, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.copilot-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4, #6366f1);
+    background-size: 200% 100%;
+    animation: gradientFlow 4s ease-in-out infinite;
 }
 
 .copilot-banner {
@@ -829,10 +939,11 @@ button[data-testid="baseButton-headerNoPadding"] {
 }
 
 .main .block-container {
-    max-width: 1420px !important;
-    padding-top: 1.5rem !important;
-    padding-left: 2.2rem !important;
-    padding-right: 2.2rem !important;
+    max-width: 1480px !important;
+    padding-top: 1.2rem !important;
+    padding-left: 2.4rem !important;
+    padding-right: 2.4rem !important;
+    padding-bottom: 4rem !important;
 }
 
 /* =========================================================================
@@ -840,47 +951,53 @@ button[data-testid="baseButton-headerNoPadding"] {
    ========================================================================= */
 
 @keyframes filmStutter {
-    0% { opacity: 0.92; transform: translate(0, 0); }
-    15% { opacity: 1; transform: translate(-1.5px, 1px); }
-    30% { opacity: 0.88; transform: translate(1px, -1.5px); }
-    45% { opacity: 1; transform: translate(-1px, 1px); }
-    60% { opacity: 0.94; transform: translate(1.5px, -1px); }
-    75% { opacity: 1; transform: translate(-0.5px, 0.5px); }
-    100% { opacity: 1; transform: translate(0, 0); }
+    0% { opacity: 0; transform: translate(0, 8px) scale(0.99); filter: brightness(1.6) saturate(0); }
+    8% { opacity: 0.7; transform: translate(-2px, 0) scale(1.005); filter: brightness(1.3); }
+    18% { opacity: 0.5; transform: translate(2px, -1px) scale(0.998); filter: brightness(1.6); }
+    28% { opacity: 0.9; transform: translate(0, 0) scale(1.002); filter: brightness(1.1); }
+    38% { opacity: 0.75; transform: translate(-1px, 1px); }
+    100% { opacity: 1; transform: translate(0, 0) scale(1); filter: brightness(1) saturate(1); }
 }
 
-@keyframes shutterApertureSpin {
-    0% { transform: rotate(0deg) scale(0.95); }
-    50% { transform: rotate(180deg) scale(1.05); }
-    100% { transform: rotate(360deg) scale(0.95); }
-}
-
-@keyframes flashAperture {
-    0%, 100% { box-shadow: 0 0 25px rgba(236, 72, 153, 0.3), inset 0 0 20px rgba(99, 102, 241, 0.2); }
-    50% { box-shadow: 0 0 45px rgba(6, 182, 212, 0.5), inset 0 0 35px rgba(236, 72, 153, 0.4); }
+@keyframes aperturePulse {
+    0%, 100% {
+        box-shadow: 0 0 22px rgba(236,72,153,0.35), 0 0 44px rgba(99,102,241,0.2), inset 0 0 18px rgba(6,182,212,0.2);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(6,182,212,0.55), 0 0 65px rgba(236,72,153,0.25), inset 0 0 30px rgba(99,102,241,0.3);
+        transform: scale(1.07);
+    }
 }
 
 .cinematic-shutter-intro {
-    background: radial-gradient(circle at 50% 30%, rgba(30, 41, 65, 0.95) 0%, rgba(8, 12, 24, 0.98) 100%);
-    border: 1.5px solid rgba(99, 102, 241, 0.45);
-    border-radius: 24px;
-    padding: 36px 42px;
-    margin: 12px 0 26px 0;
+    background: radial-gradient(ellipse 90% 80% at 50% 20%, rgba(26, 38, 72, 0.94) 0%, rgba(4, 7, 18, 0.98) 100%);
+    border: 1.5px solid rgba(99, 102, 241, 0.38);
+    border-radius: 28px;
+    padding: 40px 48px;
+    margin: 8px 0 28px 0;
     position: relative;
     overflow: hidden;
-    animation: filmStutter 0.9s ease-out 1;
-    box-shadow: 0 25px 65px rgba(0, 0, 0, 0.7), 0 0 40px rgba(99, 102, 241, 0.22);
+    animation: filmStutter 0.9s cubic-bezier(0.16, 1, 0.3, 1) 1, borderGlow 6s ease-in-out infinite 1s;
+    box-shadow: 0 32px 85px rgba(0,0,0,0.75), 0 0 55px rgba(99,102,241,0.18);
 }
 
 .cinematic-shutter-intro::before {
     content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(236, 72, 153, 0.08) 0%, transparent 60%);
-    animation: shutterApertureSpin 20s linear infinite;
+    top: -60%; left: -60%;
+    width: 220%; height: 220%;
+    background: conic-gradient(from 0deg, transparent, rgba(99,102,241,0.05), transparent 30%, rgba(6,182,212,0.05), transparent 60%, rgba(236,72,153,0.04), transparent);
+    animation: auroraRotate 30s linear infinite;
+    pointer-events: none;
+}
+
+.cinematic-shutter-intro::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 340px; height: 340px;
+    background: radial-gradient(circle, rgba(6,182,212,0.13) 0%, transparent 70%);
     pointer-events: none;
 }
 
@@ -888,13 +1005,15 @@ button[data-testid="baseButton-headerNoPadding"] {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 52px;
+    width: 58px; height: 58px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #ec4899 0%, #6366f1 50%, #06b6d4 100%);
-    border: 2px solid rgba(255, 255, 255, 0.35);
-    font-size: 1.5rem;
-    animation: flashAperture 3s infinite ease-in-out;
+    background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%);
+    border: 2px solid rgba(255, 255, 255, 0.32);
+    font-size: 1.55rem;
+    animation: aperturePulse 3.5s infinite ease-in-out;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
 }
 
 /* =========================================================================
@@ -991,22 +1110,176 @@ button[data-testid="baseButton-headerNoPadding"] {
    ========================================================================= */
 
 .precision-trimmer-card {
-    background: linear-gradient(135deg, rgba(22, 30, 52, 0.9) 0%, rgba(12, 17, 32, 0.95) 100%);
-    border: 1.5px solid rgba(236, 72, 153, 0.35);
-    border-radius: 18px;
-    padding: 24px 28px;
-    margin: 18px 0 24px 0;
-    box-shadow: 0 16px 45px rgba(236, 72, 153, 0.12);
+    background: linear-gradient(135deg, rgba(20, 28, 56, 0.93) 0%, rgba(8, 13, 28, 0.98) 100%);
+    border: 1.5px solid rgba(236, 72, 153, 0.32);
+    border-radius: 22px;
+    padding: 26px 32px;
+    margin: 16px 0 24px 0;
+    box-shadow: 0 20px 55px rgba(236, 72, 153, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.precision-trimmer-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, #ec4899, #8b5cf6, #06b6d4);
+    background-size: 200% 100%;
+    animation: gradientFlow 3s ease-in-out infinite;
 }
 
 .trimmer-title {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     font-weight: 800;
     color: #ffffff;
     display: flex;
     align-items: center;
     gap: 10px;
     margin-bottom: 8px;
+    letter-spacing: -0.025em;
+}
+
+/* Scrollbar premium styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.35); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.62); }
+
+/* Video player */
+div[data-testid="stVideo"] video {
+    border-radius: 14px !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    box-shadow: 0 12px 38px rgba(0,0,0,0.58) !important;
+}
+
+/* Image hover zoom */
+div[data-testid="stImage"] img {
+    border-radius: 12px !important;
+    border: 1px solid rgba(255,255,255,0.07) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.48) !important;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+div[data-testid="stImage"] img:hover { transform: scale(1.025) !important; }
+
+/* Progress bar animated gradient */
+div[data-testid="stProgress"] > div > div {
+    background: linear-gradient(90deg, #6366f1, #06b6d4, #ec4899) !important;
+    background-size: 200% 100% !important;
+    animation: gradientFlow 2s ease-in-out infinite !important;
+    border-radius: 999px !important;
+}
+
+/* Expander premium */
+div[data-testid="stExpander"] {
+    background: rgba(8, 13, 28, 0.78) !important;
+    border: 1px solid rgba(99,102,241,0.2) !important;
+    border-radius: 16px !important;
+    margin-bottom: 20px !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35) !important;
+    backdrop-filter: blur(16px) !important;
+    transition: all 0.25s ease !important;
+}
+div[data-testid="stExpander"]:hover {
+    border-color: rgba(99,102,241,0.38) !important;
+    box-shadow: 0 12px 38px rgba(99,102,241,0.14) !important;
+}
+
+/* Dataframe */
+div[data-testid="stDataFrame"] {
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(255,255,255,0.07) !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.4) !important;
+}
+
+/* Dividers */
+hr {
+    border: none !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(99,102,241,0.3), rgba(6,182,212,0.3), transparent) !important;
+    margin: 24px 0 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .cinematic-shutter-intro { padding: 24px 22px; border-radius: 20px; }
+    .hero-headline { font-size: 1.85rem; }
+    .main .block-container { padding-left: 1.2rem !important; padding-right: 1.2rem !important; }
+}
+
+/* =========================================================================
+   🛡️ ERROR & WARNING STATES — FRIENDLY, BRANDED
+   ========================================================================= */
+
+div[data-testid="stAlert"] {
+    border-radius: 14px !important;
+    border-width: 1px !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+div[data-testid="stAlert"][data-baseweb="notification"] {
+    font-family: var(--font-sans) !important;
+    font-size: 0.93rem !important;
+}
+
+/* Success alert — emerald glow */
+div[data-testid="stAlert"].st-success {
+    background: rgba(16, 185, 129, 0.12) !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+    color: #a7f3d0 !important;
+}
+
+/* Error alert — rose glow */
+div[data-testid="stAlert"].st-error {
+    background: rgba(239, 68, 68, 0.12) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #fca5a5 !important;
+}
+
+/* Warning alert — amber glow */
+div[data-testid="stAlert"].st-warning {
+    background: rgba(245, 158, 11, 0.12) !important;
+    border-color: rgba(245, 158, 11, 0.4) !important;
+    color: #fde68a !important;
+}
+
+/* Info alert — cyan glow */
+div[data-testid="stAlert"].st-info {
+    background: rgba(6, 182, 212, 0.10) !important;
+    border-color: rgba(6, 182, 212, 0.35) !important;
+    color: #a5f3fc !important;
+}
+
+/* =========================================================================
+   ✨ RESULTS WORKSPACE — FADE-IN ENTRANCE ANIMATION
+   ========================================================================= */
+
+.results-workspace-fadeIn {
+    animation: fadeSlideIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Spinner overlay styling */
+div[data-testid="stSpinner"] {
+    color: var(--neon-cyan) !important;
+}
+
+/* File uploader drop zone */
+div[data-testid="stFileUploader"] {
+    border-radius: 16px !important;
+}
+
+div[data-testid="stFileUploader"] > section {
+    border: 2px dashed rgba(99, 102, 241, 0.4) !important;
+    border-radius: 16px !important;
+    background: rgba(10, 15, 30, 0.6) !important;
+    transition: all 0.3s ease !important;
+}
+
+div[data-testid="stFileUploader"] > section:hover {
+    border-color: rgba(99, 102, 241, 0.75) !important;
+    background: rgba(99, 102, 241, 0.06) !important;
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.15) !important;
 }
 </style>
 """

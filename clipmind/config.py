@@ -64,6 +64,12 @@ class AppConfig:
         self.allowed_extensions = {ext.lower() for ext in self.allowed_extensions}
         self.base_temp_dir.mkdir(parents=True, exist_ok=True)
 
+    @property
+    def temp_dir(self) -> Path:
+        """Alias for base_temp_dir for convenience."""
+        return self.base_temp_dir
+
+
 
 # Global default configuration instance
 config = AppConfig()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import textwrap
 from pathlib import Path
 from typing import List, Optional
 
@@ -16,6 +17,17 @@ from clipmind.video.keyframe import Keyframe
 from clipmind.video.metadata import VideoMetadata
 
 
+def render_html(html_str: str) -> None:
+    """Safely render HTML without CommonMark code-block indentation bugs."""
+    clean = "".join(line.strip() for line in html_str.splitlines() if line.strip())
+    if hasattr(st, "html"):
+        st.html(clean)
+    else:
+        st.markdown(clean, unsafe_allow_html=True)
+
+
+
+
 def render_full_video_narrative_hero(narrative: FullVideoNarrative) -> None:
     """Renders executive-level narrative synopsis, mood, aesthetic palette, and motion rhythm."""
     swatches_html = "".join([
@@ -24,9 +36,8 @@ def render_full_video_narrative_hero(narrative: FullVideoNarrative) -> None:
         for hex_c in narrative.dominant_palette_hex
     ])
 
-    st.markdown(
-        f"""
-        <div class="narrative-hero-card">
+    render_html(
+        f"""<div class="narrative-hero-card">
             <div class="narrative-title">
                 <span>✨ {narrative.title_suggestion}</span>
             </div>
@@ -35,20 +46,14 @@ def render_full_video_narrative_hero(narrative: FullVideoNarrative) -> None:
                 <span class="badge-pill badge-extended">⚡ Tempo: {narrative.tempo_rhythm_summary}</span>
                 <span class="badge-pill badge-rapid">🎬 Scenes: {narrative.total_scenes_count} Cuts</span>
             </div>
-            <div class="narrative-synopsis">
-                {narrative.executive_synopsis}
-            </div>
+            <div class="narrative-synopsis">{narrative.executive_synopsis}</div>
             <div style="margin-top: 14px;">
                 <span style="font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;">
                     Dominant Visual Color Scheme:
                 </span>
-                <div class="palette-container">
-                    {swatches_html}
-                </div>
+                <div class="palette-container">{swatches_html}</div>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+        </div>"""
     )
 
 
@@ -75,23 +80,19 @@ def render_scene_intelligence_cards(narrative: FullVideoNarrative) -> None:
                 st.markdown(f"`{s.lighting_key}`")
             with c3:
                 st.caption(f"Motion Energy Score: {s.motion_energy_score}/100 ({s.motion_level})")
-                st.markdown(
-                    f"""
-                    <div class="motion-bar-track">
+                render_html(
+                    f"""<div class="motion-bar-track">
                         <div class="motion-bar-fill" style="width: {s.motion_energy_score}%;"></div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+                    </div>"""
                 )
 
-            st.markdown(f'<div class="palette-container">{swatches}</div>', unsafe_allow_html=True)
+            render_html(f'<div class="palette-container">{swatches}</div>')
 
 
 def render_ai_cockpit_status_bar() -> None:
     """Renders cybernetic telemetry status bar."""
-    st.markdown(
-        """
-        <div class="ai-cockpit-status-bar">
+    render_html(
+        """<div class="ai-cockpit-status-bar">
             <div class="ai-status-item">
                 <span class="ai-pulse-dot"></span>
                 <span>Neural Vision Core v2.4 Online</span>
@@ -107,17 +108,14 @@ def render_ai_cockpit_status_bar() -> None:
             <div class="ai-status-item" style="color: #64748b;">
                 <span>Container: MP4 • MOV • MKV • WEBM • AVI</span>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+        </div>"""
     )
 
 
 def render_brand_header() -> None:
     """Renders the top branding header with cyberpunk badges."""
-    st.markdown(
-        """
-        <div class="clipmind-brand-header">
+    render_html(
+        """<div class="clipmind-brand-header">
             <div class="clipmind-brand-left">
                 <div class="clipmind-logo-badge">CM</div>
                 <div class="clipmind-header-text">
@@ -129,20 +127,17 @@ def render_brand_header() -> None:
                 <span class="badge-pill badge-standard">⚡ GPU-Independent</span>
                 <span class="badge-pill badge-extended">🛡️ Zero-Leak Enclave</span>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+        </div>"""
     )
 
 
 def render_landing_showcase() -> None:
     """Renders the high-impact AI landing showcase with cinematic shutter stutter animation and Figma doodle accents."""
-    st.markdown(
-        """
-        <div class="cinematic-shutter-intro">
+    render_html(
+        """<div class="cinematic-shutter-intro">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
                 <div style="display: flex; align-items: center; gap: 14px;">
-                    <div class="aperture-emblem">📸</div>
+                    <div class="aperture-emblem">🎬</div>
                     <div>
                         <span class="hero-pill-tag">⚡ Automated Video Intelligence Core</span>
                         <div style="margin-top: 4px;">
@@ -157,26 +152,17 @@ def render_landing_showcase() -> None:
                     <span class="badge-pill badge-standard">⚡ Hyper-Turbo 3x</span>
                 </div>
             </div>
-
-            <div class="hero-headline">
-                Transform Any Video into Precise Scenes, Keyframes & Video Cuts
-            </div>
-            <div class="hero-subhead">
-                ClipMind AI combines dual-engine camera motion compensation, neural color profiling,
-                and lossless audio stream muxing to convert raw video into actionable video cuts,
-                storyboard contact sheets, and social creator clips.
-            </div>
-
+            <div class="hero-headline">Transform Any Video into Precise Scenes, Keyframes & Video Cuts</div>
+            <div class="hero-subhead">ClipMind AI combines dual-engine camera motion compensation, neural color profiling, and lossless audio stream muxing to convert raw video into actionable video cuts, storyboard contact sheets, and social creator clips.</div>
             <div class="pipeline-stepper">
-                <div class="step-item"><span class="step-num">01</span> Ingestion & Decodability Verification</div>
+                <div class="step-item"><span class="step-num">01</span> Select or Upload Video</div>
                 <span class="step-arrow">➔</span>
-                <div class="step-item"><span class="step-num">02</span> Dual-Engine Scene Scanner</div>
+                <div class="step-item"><span class="step-num">02</span> Preview & Configure Dials</div>
                 <span class="step-arrow">➔</span>
-                <div class="step-item"><span class="step-num">03</span> Neural Keyframe Storyboard</div>
+                <div class="step-item"><span class="step-num">03</span> Click Start Analysis</div>
                 <span class="step-arrow">➔</span>
-                <div class="step-item"><span class="step-num">04</span> Lossless Video Cuts (With Sound)</div>
+                <div class="step-item"><span class="step-num">04</span> Download Cuts (With Sound)</div>
             </div>
-
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon-box">⚡</div>
@@ -199,9 +185,7 @@ def render_landing_showcase() -> None:
                     <div class="feature-desc">Interactive conversational assistant for TikTok/Reels hooks, music BPM suggestions, and technical breakdowns.</div>
                 </div>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+        </div>"""
     )
 
 
@@ -239,10 +223,7 @@ def render_timeline_bar(scenes: List[SceneInfo], total_duration: float) -> None:
         )
         segments_html.append(seg)
 
-    st.markdown(
-        f'<div class="timeline-track">{"".join(segments_html)}</div>',
-        unsafe_allow_html=True,
-    )
+    render_html(f'<div class="timeline-track">{"".join(segments_html)}</div>')
     st.caption("Hover over timeline segments to view scene start, end, and duration timecodes.")
 
 
@@ -259,15 +240,12 @@ def render_summary_analytics(summary: VideoSummaryReport) -> None:
     with c4:
         st.metric(label="Keyframes Extracted", value=summary.extracted_keyframes_count)
 
-    st.markdown(
-        f"""
-        <div style="display: flex; gap: 12px; margin-top: 8px;">
+    render_html(
+        f"""<div style="display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap;">
             <span class="badge-rapid">⚡ Rapid Cuts (&lt;2s): {summary.rapid_scenes_count} ({summary.rapid_scenes_pct}%)</span>
             <span class="badge-standard">🎬 Standard (2-8s): {summary.standard_scenes_count} ({summary.standard_scenes_pct}%)</span>
             <span class="badge-extended">🌿 Extended (&gt;8s): {summary.extended_scenes_count} ({summary.extended_scenes_pct}%)</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
+        </div>"""
     )
 
     if summary.narrative_breakdown:
@@ -327,26 +305,29 @@ def render_keyframe_gallery(
 
 def render_studio_inspector_header() -> None:
     """Renders sleek studio IDE inspector telemetry header in the sidebar."""
-    st.markdown(
-        """
-        <div class="studio-inspector-header">
+    render_html(
+        """<div class="studio-inspector-header">
             <div class="studio-title">
                 <span>🛠️ Studio Inspector</span>
             </div>
             <div class="studio-telemetry">
                 <span>8 vCPUs • Zero-Copy RAM • Frame-Lock</span>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+        </div>"""
     )
 
 
 def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, output_dir: Path) -> None:
     """Renders interactive precision timecode trimming suite with direct audio playback."""
-    st.markdown(
-        """
-        <div class="precision-trimmer-card">
+    video_path = Path(video_path)
+    if not video_path.exists():
+        st.info(
+            "ℹ️ Precision trimmer unavailable — the source video file is not accessible in this session. "
+            "You can still download the automatically extracted scene clips below."
+        )
+        return
+    render_html(
+        """<div class="precision-trimmer-card">
             <div class="trimmer-title">
                 <span>✂️ Precision Clip Trimmer & Audio Slicer</span>
                 <span class="audio-sound-active-badge">🔊 High-Fidelity Audio Enabled</span>
@@ -354,9 +335,7 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
             <div style="font-size: 0.86rem; color: #94a3b8; margin-bottom: 12px;">
                 Drag the timecode sliders or input precise seconds to render a custom high-quality clip from anywhere in the video.
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+        </div>"""
     )
 
     t_col1, t_col2 = st.columns([3, 1])
@@ -380,28 +359,41 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
 
     if st.button("⚡ Cut & Render Custom High-Quality Clip (With Audio)", type="primary", use_container_width=True):
         custom_clip_path = output_dir / f"custom_clip_{sel_start:.1f}s_to_{sel_end:.1f}s.mp4"
-        success = extract_single_custom_clip(
-            video_path=video_path,
-            start_seconds=sel_start,
-            end_seconds=sel_end,
-            output_path=custom_clip_path,
-        )
-        if success and custom_clip_path.exists():
-            st.session_state["last_custom_clip"] = str(custom_clip_path)
-            st.success(f"Custom clip cut successfully ({duration:.2f}s, Audio preserved)!")
-
-    if "last_custom_clip" in st.session_state and Path(st.session_state["last_custom_clip"]).exists():
-        c_path = Path(st.session_state["last_custom_clip"])
-        st.markdown("##### 🎬 Custom Clip Monitor (Lossless Sound)")
-        st.video(str(c_path))
-        with open(c_path, "rb") as cf:
-            st.download_button(
-                label="⬇️ Download Custom Clip (MP4 with Sound)",
-                data=cf.read(),
-                file_name=c_path.name,
-                mime="video/mp4",
-                key="dl_custom_trim_clip",
+        try:
+            success = extract_single_custom_clip(
+                video_path=video_path,
+                start_seconds=sel_start,
+                end_seconds=sel_end,
+                output_path=custom_clip_path,
             )
+            if success and custom_clip_path.exists():
+                st.session_state["last_custom_clip"] = str(custom_clip_path)
+                st.success(f"✅ Custom clip cut successfully ({duration:.2f}s, Audio preserved)!")
+            else:
+                st.error("⚠️ Clip extraction failed. Ensure ffmpeg is installed or try a different video format.")
+        except Exception as clip_err:
+            st.error(f"⚠️ Custom clip error: {clip_err}")
+
+    # Show the last successfully rendered custom clip
+    last_clip_key = st.session_state.get("last_custom_clip")
+    if last_clip_key and Path(last_clip_key).exists():
+        c_path = Path(last_clip_key)
+        st.markdown("##### 🎬 Custom Clip Monitor (Lossless Sound)")
+        try:
+            st.video(str(c_path))
+        except Exception:
+            st.caption("⚠️ Preview unavailable — download the clip to play it.")
+        try:
+            with open(c_path, "rb") as cf:
+                st.download_button(
+                    label="⬇️ Download Custom Clip (MP4 with Sound)",
+                    data=cf.read(),
+                    file_name=c_path.name,
+                    mime="video/mp4",
+                    key="dl_custom_trim_clip",
+                )
+        except OSError as cf_err:
+            st.caption(f"⚠️ Download unavailable: {cf_err}")
 
 
 def render_scene_clips_gallery(scenes: List[SceneInfo]) -> None:
@@ -411,9 +403,8 @@ def render_scene_clips_gallery(scenes: List[SceneInfo]) -> None:
         st.info("ℹ️ No video clips generated. Enable 'Generate Scene Video Clips' in the control deck to create video cuts.")
         return
 
-    st.markdown(
-        f"""
-        <div class="cutting-machine-banner">
+    render_html(
+        f"""<div class="cutting-machine-banner">
             <div class="cutter-title">
                 <span class="scissor-icon-animated">✂️</span>
                 <span>Physical Scene Cutting Room • {len(valid_scenes)} Frame-Accurate Slices</span>
@@ -423,18 +414,15 @@ def render_scene_clips_gallery(scenes: List[SceneInfo]) -> None:
                 Every video cut below was extracted losslessly at detected camera cut boundaries with complete audio soundtrack preservation.
                 Equipped with filmstrip sprocket spools, exact start-end timecode stamps, and direct MP4 export.
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+        </div>"""
     )
 
     cols = st.columns(2)
     for idx, s in enumerate(valid_scenes):
         col = cols[idx % 2]
         with col:
-            st.markdown(
-                f"""
-                <div class="film-clip-card">
+            render_html(
+                f"""<div class="film-clip-card">
                     <div class="filmstrip-sprockets"></div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; flex-wrap: wrap; gap: 6px;">
                         <span class="clip-badge-cut">✂️ SCENE CUT #{s.scene_number:02d}</span>
@@ -443,22 +431,31 @@ def render_scene_clips_gallery(scenes: List[SceneInfo]) -> None:
                             {s.start_timecode} ➔ {s.end_timecode} ({s.duration_seconds:.2f}s)
                         </span>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+                </div>"""
             )
-            st.video(str(s.clip_path))
-            st.markdown('<div class="filmstrip-sprockets"></div>', unsafe_allow_html=True)
-            with open(s.clip_path, "rb") as vf:
-                clip_data = vf.read()
-                st.download_button(
-                    label=f"⬇️ Download Scene #{s.scene_number:02d} Clip (MP4 with Sound)",
-                    data=clip_data,
-                    file_name=s.clip_filename or f"scene_{s.scene_number:03d}.mp4",
-                    mime="video/mp4",
-                    key=f"dl_clip_{s.scene_number}_{idx}",
-                    use_container_width=True,
-                )
+            clip_p = Path(s.clip_path)
+            try:
+                st.video(str(clip_p))
+            except Exception as ve:
+                st.warning(f"⚠️ Cannot preview Scene #{s.scene_number}: {ve}")
+            render_html('<div class="filmstrip-sprockets"></div>')
+            # Safe file read with existence check
+            if clip_p.exists() and clip_p.stat().st_size > 0:
+                try:
+                    with open(clip_p, "rb") as vf:
+                        clip_data = vf.read()
+                    st.download_button(
+                        label=f"⬇️ Download Scene #{s.scene_number:02d} Clip (MP4 with Sound)",
+                        data=clip_data,
+                        file_name=s.clip_filename or f"scene_{s.scene_number:03d}.mp4",
+                        mime="video/mp4",
+                        key=f"dl_clip_{s.scene_number}_{idx}",
+                        use_container_width=True,
+                    )
+                except OSError as oe:
+                    st.caption(f"⚠️ Clip file read error for Scene #{s.scene_number}: {oe}")
+            else:
+                st.caption(f"⚠️ Clip file missing or empty for Scene #{s.scene_number}")
 
 
 def render_ai_copilot_chatbot(
@@ -468,9 +465,8 @@ def render_ai_copilot_chatbot(
     narrative: Optional[FullVideoNarrative],
 ) -> None:
     """Renders interactive AI Video Copilot chatbot interface."""
-    st.markdown(
-        f"""
-        <div class="copilot-card">
+    render_html(
+        f"""<div class="copilot-card">
             <div class="copilot-banner">
                 <div class="copilot-agent-badge">
                     <div class="copilot-avatar">🤖</div>
@@ -486,9 +482,7 @@ def render_ai_copilot_chatbot(
             <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 12px;">
                 Ask any question about scenes, pacing, viral hooks, color aesthetics, motion scores, or audio design:
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+        </div>"""
     )
 
     # Initialize chat history in session state
@@ -540,8 +534,6 @@ def render_ai_copilot_chatbot(
     # Render Conversation History
     for msg in st.session_state["copilot_history"]:
         if msg["role"] == "user":
-            st.markdown(f'<div class="chat-bubble-user">👤 <b>You</b>: {msg["content"]}</div>', unsafe_allow_html=True)
+            render_html(f'<div class="chat-bubble-user">👤 <b>You</b>: {msg["content"]}</div>')
         else:
-            st.markdown(f'<div class="chat-bubble-ai">🤖 <b>ClipMind Copilot</b>:<br><br>{msg["content"]}</div>', unsafe_allow_html=True)
-
-
+            render_html(f'<div class="chat-bubble-ai">🤖 <b>ClipMind Copilot</b>:<br><br>{msg["content"]}</div>')
