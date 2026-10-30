@@ -39,6 +39,7 @@ def extract_single_custom_clip(
     end_seconds: float,
     output_path: Path,
     aspect_ratio: str = "original",
+    **kwargs: Any,
 ) -> bool:
     """Extracts a custom trimmed video clip with full audio preservation and optional 9:16 vertical portrait formatting.
 
@@ -203,6 +204,7 @@ def extract_scene_clips(
     max_clips: Optional[int] = 50,
     aspect_ratio: str = "original",
     progress_callback: Optional[Callable[[float, str], None]] = None,
+    **kwargs: Any,
 ) -> List[Path]:
     """Slices a video into frame-accurate individual scene video clips (.mp4) with audio preservation and optional 9:16 portrait layout.
 
@@ -379,6 +381,7 @@ def extract_fixed_interval_clips(
     output_dir: Path,
     aspect_ratio: str = "original",
     progress_callback: Optional[Callable[[float, str], None]] = None,
+    **kwargs: Any,
 ) -> List[Dict[str, Any]]:
     """Slices a designated video time window into uniform fixed-duration clips (e.g. 60s clips).
 

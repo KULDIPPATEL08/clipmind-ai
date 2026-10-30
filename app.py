@@ -2,9 +2,19 @@
 
 from __future__ import annotations
 
+import importlib
 import io
 from pathlib import Path
+import sys
 from typing import Optional
+
+# Ensure hot-reloaded modules in running Streamlit processes stay strictly in sync
+for _mod in ["clipmind.video.clipper", "clipmind.ui.components", "clipmind.export.exporter"]:
+    if _mod in sys.modules:
+        try:
+            importlib.reload(sys.modules[_mod])
+        except Exception:
+            pass
 
 import cv2
 import numpy as np
@@ -528,14 +538,19 @@ def main() -> None:
                 progress_bar.progress(0.85 + 0.08 * ratio)
                 status_text.text(msg)
 
-            extract_scene_clips(
-                video_path=video_path,
-                scenes=scenes,
-                output_dir=session.clips_dir,
-                max_clips=max_clips,
-                aspect_ratio=pipeline_aspect,
-                progress_callback=on_clip_progress,
-            )
+            import inspect
+            sig = inspect.signature(extract_scene_clips)
+            clip_kwargs = {
+                "video_path": video_path,
+                "scenes": scenes,
+                "output_dir": session.clips_dir,
+                "max_clips": max_clips,
+                "progress_callback": on_clip_progress,
+            }
+            if "aspect_ratio" in sig.parameters:
+                clip_kwargs["aspect_ratio"] = pipeline_aspect
+
+            extract_scene_clips(**clip_kwargs)
             try:
                 clips_zip_path = session.exports_dir / f"{Path(video_path).stem}_scene_clips.zip"
                 create_video_clips_zip(scenes, clips_zip_path)
