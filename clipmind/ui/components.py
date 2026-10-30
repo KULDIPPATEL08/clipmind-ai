@@ -342,136 +342,151 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
     max_sec = max(0.5, float(metadata.duration_seconds))
     min_clip_req = min(70.0, max_sec)
 
-    # Initialize session state for precision inputs (timeline starts at 0.0s, minimum 70s)
-    if "trim_start_val" not in st.session_state:
-        st.session_state["trim_start_val"] = 0.0
-    if "trim_end_val" not in st.session_state:
-        st.session_state["trim_end_val"] = min_clip_req
+    # Initialize single source-of-truth slider state: timeline starts at 0.0s, minimum 70s
+    if "clip_trim_slider" not in st.session_state:
+        st.session_state["clip_trim_slider"] = (0.0, min_clip_req)
+    else:
+        # Validate existing state
+        cur_s, cur_e = st.session_state["clip_trim_slider"]
+        cur_s = max(0.0, min(float(cur_s), max_sec - 0.1))
+        cur_e = max(cur_s + 0.1, min(float(cur_e), max_sec))
+        st.session_state["clip_trim_slider"] = (cur_s, cur_e)
 
-    # Clamp safely within boundaries with 70s minimum duration
-    st.session_state["trim_start_val"] = max(0.0, min(float(st.session_state["trim_start_val"]), max_sec - min_clip_req))
-    st.session_state["trim_end_val"] = max(
-        st.session_state["trim_start_val"] + min_clip_req,
-        min(float(st.session_state["trim_end_val"]), max_sec),
-    )
-
-    # Quick preset chips
+    # 1. Quick Presets (One-click jump to exact time ranges)
     st.markdown("###### ⚡ Quick Presets (Min 70s)")
     pr_col1, pr_col2, pr_col3, pr_col4, pr_col5 = st.columns(5)
     with pr_col1:
         if st.button("⏱️ Min Clip (70s)", key="btn_pr_70", use_container_width=True):
-            st.session_state["trim_start_val"] = 0.0
-            st.session_state["trim_end_val"] = min_clip_req
+            st.session_state["clip_trim_slider"] = (0.0, min_clip_req)
             st.rerun()
     with pr_col2:
         if st.button("⚡ 90s Segment", key="btn_pr_90", use_container_width=True):
-            st.session_state["trim_start_val"] = 0.0
-            st.session_state["trim_end_val"] = min(max_sec, max(min_clip_req, 90.0))
+            st.session_state["clip_trim_slider"] = (0.0, min(max_sec, max(min_clip_req, 90.0)))
             st.rerun()
     with pr_col3:
         if st.button("🎬 2 Mins (120s)", key="btn_pr_120", use_container_width=True):
-            st.session_state["trim_start_val"] = 0.0
-            st.session_state["trim_end_val"] = min(max_sec, max(min_clip_req, 120.0))
+            st.session_state["clip_trim_slider"] = (0.0, min(max_sec, max(min_clip_req, 120.0)))
             st.rerun()
     with pr_col4:
         if st.button("🎬 5 Mins (300s)", key="btn_pr_300", use_container_width=True):
-            st.session_state["trim_start_val"] = 0.0
-            st.session_state["trim_end_val"] = min(max_sec, max(min_clip_req, 300.0))
+            st.session_state["clip_trim_slider"] = (0.0, min(max_sec, max(min_clip_req, 300.0)))
             st.rerun()
     with pr_col5:
         if st.button("🎞️ Full Video", key="btn_pr_all", use_container_width=True):
-            st.session_state["trim_start_val"] = 0.0
-            st.session_state["trim_end_val"] = max_sec
+            st.session_state["clip_trim_slider"] = (0.0, max_sec)
             st.rerun()
 
-    cur_start = float(st.session_state["trim_start_val"])
-    cur_end = float(st.session_state["trim_end_val"])
-
-    # Fine-tune boundary slider
+    # 2. Main Fine-Tune Slider (Single Source of Truth)
     time_range = st.slider(
-        "Fine-Tune Boundary Slider (Seconds • Min 70s)",
+        "Fine-Tune Boundary Slider (Timeline starts at 0.0s • Minimum 70s)",
         min_value=0.0,
         max_value=max_sec,
-        value=(cur_start, cur_end),
+        value=st.session_state["clip_trim_slider"],
         step=0.5,
         format="%.1fs",
-        key="custom_trim_slider",
-        help="Timeline starts at 0.0s. Drag handles to set cutoff points (minimum clip length is 70 seconds).",
+        key="clip_trim_slider",
+        help="Timeline starts at 0.0s. Drag handles to adjust start and end cut points (min 70s enforced).",
     )
 
-    # Sync from slider to session state if user dragged it, enforcing min 70s
-    if time_range != (cur_start, cur_end):
-        s_val, e_val = time_range
-        if (e_val - s_val) < min_clip_req:
-            # Enforce 70s minimum duration
-            if e_val < max_sec:
-                e_val = min(max_sec, s_val + min_clip_req)
-            else:
-                s_val = max(0.0, e_val - min_clip_req)
-        st.session_state["trim_start_val"] = s_val
-        st.session_state["trim_end_val"] = e_val
-        cur_start, cur_end = s_val, e_val
-
-    # Direct numeric input columns for exact precision
-    c_s, c_e, c_summary = st.columns([1, 1, 1])
-    with c_s:
-        new_start = st.number_input(
-            "Start Point (Seconds)",
-            min_value=0.0,
-            max_value=max(0.0, max_sec - min_clip_req),
-            value=float(cur_start),
-            step=0.5,
-            format="%.1f",
-            key="num_trim_start",
-        )
-        st.caption(f"Timecode: `{seconds_to_timecode(new_start)}`")
-        if abs(new_start - cur_start) > 0.05:
-            st.session_state["trim_start_val"] = new_start
-            if (st.session_state["trim_end_val"] - new_start) < min_clip_req:
-                st.session_state["trim_end_val"] = min(max_sec, new_start + min_clip_req)
-            st.rerun()
-
-    with c_e:
-        new_end = st.number_input(
-            "End Point (Seconds • Min +70s)",
-            min_value=min(max_sec, cur_start + min_clip_req),
-            max_value=max_sec,
-            value=float(cur_end),
-            step=0.5,
-            format="%.1f",
-            key="num_trim_end",
-        )
-        st.caption(f"Timecode: `{seconds_to_timecode(new_end)}`")
-        if abs(new_end - cur_end) > 0.05:
-            if (new_end - st.session_state["trim_start_val"]) < min_clip_req:
-                st.session_state["trim_start_val"] = max(0.0, new_end - min_clip_req)
-            st.session_state["trim_end_val"] = new_end
-            st.rerun()
-
-    # Active selection parameters
-    sel_start = float(st.session_state["trim_start_val"])
-    sel_end = float(st.session_state["trim_end_val"])
+    sel_start, sel_end = time_range
     if sel_start > sel_end:
         sel_start, sel_end = sel_end, sel_start
+
+    # Enforce 70s minimum clip duration
+    if (sel_end - sel_start) < min_clip_req and max_sec > min_clip_req:
+        if sel_start + min_clip_req <= max_sec:
+            sel_end = sel_start + min_clip_req
+        else:
+            sel_start = max(0.0, sel_end - min_clip_req)
+        st.session_state["clip_trim_slider"] = (sel_start, sel_end)
+
     duration = max(0.1, sel_end - sel_start)
 
-    with c_summary:
-        is_valid_len = duration >= min_clip_req or max_sec <= min_clip_req
-        status_color = "#38bdf8" if is_valid_len else "#f87171"
-        render_html(
-            f"""<div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 12px; margin-top: 4px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Selected Range</span>
-                    <span class="badge-pill badge-extended" style="font-size: 0.65rem; padding: 2px 6px;">Min 70s</span>
+    # 3. Live Synchronized Range Card
+    render_html(
+        f"""<div style="background: rgba(15, 23, 42, 0.85); border: 1.5px solid rgba(99, 102, 241, 0.35); border-radius: 14px; padding: 16px 20px; margin: 12px 0 16px 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Selected Cut Range</span>
+                <span class="badge-pill badge-extended" style="font-size: 0.72rem;">Min 70s Enforced</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <span style="font-size: 0.75rem; color: #64748b; display: block;">START POINT</span>
+                    <span style="font-size: 1.15rem; font-weight: 800; color: #38bdf8; font-family: monospace;">{seconds_to_timecode(sel_start)}</span>
+                    <span style="font-size: 0.8rem; color: #94a3b8; margin-left: 6px;">({sel_start:.1f}s)</span>
                 </div>
-                <div style="font-size: 1.05rem; font-weight: 800; color: {status_color}; margin: 4px 0;">
-                    {seconds_to_timecode(sel_start)} ➔ {seconds_to_timecode(sel_end)}
+                <div style="font-size: 1.2rem; color: #6366f1;">➔</div>
+                <div>
+                    <span style="font-size: 0.75rem; color: #64748b; display: block;">END POINT</span>
+                    <span style="font-size: 1.15rem; font-weight: 800; color: #38bdf8; font-family: monospace;">{seconds_to_timecode(sel_end)}</span>
+                    <span style="font-size: 0.8rem; color: #94a3b8; margin-left: 6px;">({sel_end:.1f}s)</span>
                 </div>
-                <div style="font-size: 0.8rem; color: #cbd5e1;">
-                    Duration: <b>{duration:.1f}s</b> ({(duration / max_sec) * 100:.1f}% of video)
+                <div>
+                    <span style="font-size: 0.75rem; color: #64748b; display: block;">CLIP DURATION</span>
+                    <span style="font-size: 1.15rem; font-weight: 800; color: #34d399; font-family: monospace;">{duration:.1f}s</span>
+                    <span style="font-size: 0.8rem; color: #94a3b8; margin-left: 6px;">({(duration / max_sec) * 100:.1f}% of video)</span>
                 </div>
-            </div>"""
-        )
+            </div>
+        </div>"""
+    )
+
+    # 4. Step Adjuster Buttons (Nudge start or end by +/- 5s without desync)
+    st.caption("🎯 Quick Fine-Tuning Step Adjusters:")
+    st_col1, st_col2 = st.columns(2)
+    with st_col1:
+        st.markdown("**Start Point Adjuster:**")
+        b1, b2, b3 = st.columns(3)
+        with b1:
+            if st.button("⏪ -10s Start", key="nudge_s_minus_10", use_container_width=True):
+                new_s = max(0.0, sel_start - 10.0)
+                st.session_state["clip_trim_slider"] = (new_s, sel_end)
+                st.rerun()
+        with b2:
+            if st.button("⏮️ -1s Start", key="nudge_s_minus_1", use_container_width=True):
+                new_s = max(0.0, sel_start - 1.0)
+                st.session_state["clip_trim_slider"] = (new_s, sel_end)
+                st.rerun()
+        with b3:
+            if st.button("⏭️ +1s Start", key="nudge_s_plus_1", use_container_width=True):
+                new_s = min(sel_end - min_clip_req, sel_start + 1.0)
+                st.session_state["clip_trim_slider"] = (new_s, sel_end)
+                st.rerun()
+
+    with st_col2:
+        st.markdown("**End Point Adjuster:**")
+        b4, b5, b6 = st.columns(3)
+        with b4:
+            if st.button("⏮️ -1s End", key="nudge_e_minus_1", use_container_width=True):
+                new_e = max(sel_start + min_clip_req, sel_end - 1.0)
+                st.session_state["clip_trim_slider"] = (sel_start, new_e)
+                st.rerun()
+        with b5:
+            if st.button("⏭️ +1s End", key="nudge_e_plus_1", use_container_width=True):
+                new_e = min(max_sec, sel_end + 1.0)
+                st.session_state["clip_trim_slider"] = (sel_start, new_e)
+                st.rerun()
+        with b6:
+            if st.button("⏩ +10s End", key="nudge_e_plus_10", use_container_width=True):
+                new_e = min(max_sec, sel_end + 10.0)
+                st.session_state["clip_trim_slider"] = (sel_start, new_e)
+                st.rerun()
+
+    # 5. Optional Direct Numeric Form (Isolated in a clean form, cannot desync slider)
+    with st.expander("⌨️ Or Enter Exact Custom Seconds Manually", expanded=False):
+        with st.form("manual_timestamp_form"):
+            f_col1, f_col2, f_col3 = st.columns([1, 1, 1])
+            with f_col1:
+                man_start = st.number_input("Exact Start (Seconds)", min_value=0.0, max_value=max(0.0, max_sec - min_clip_req), value=float(sel_start), step=0.5, format="%.1f")
+            with f_col2:
+                man_end = st.number_input("Exact End (Seconds)", min_value=min(max_sec, man_start + min_clip_req), max_value=max_sec, value=float(sel_end), step=0.5, format="%.1f")
+            with f_col3:
+                st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                apply_man = st.form_submit_button("✅ Apply to Slider", use_container_width=True)
+            if apply_man:
+                if (man_end - man_start) < min_clip_req and max_sec > min_clip_req:
+                    man_end = min(max_sec, man_start + min_clip_req)
+                st.session_state["clip_trim_slider"] = (man_start, man_end)
+                st.rerun()
 
     st.markdown("")
     if st.button("⚡ Cut & Render Custom High-Quality Clip (With Audio)", type="primary", use_container_width=True):

@@ -121,7 +121,8 @@ def reset_all_state() -> None:
     keys_to_clear = [
         "analysis_results", "staged_type", "staged_file",
         "copilot_history", "active_session", "last_custom_clip",
-        "last_custom_clip_meta", "trim_start_val", "trim_end_val",
+        "last_custom_clip_meta", "clip_trim_slider",
+        "trim_start_val", "trim_end_val",
         "custom_trim_slider", "num_trim_start", "num_trim_end",
     ]
     for k in keys_to_clear:
