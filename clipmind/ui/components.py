@@ -489,21 +489,44 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
                 st.session_state["clip_trim_slider"] = (man_start, man_end)
                 st.rerun()
 
+    # 6. Aspect Ratio & Portrait Format Selector
+    st.markdown("###### 📱 Output Aspect Ratio Format")
+    trim_aspect_choice = st.radio(
+        "Aspect Ratio",
+        options=[
+            "📱 9:16 Vertical Portrait (Shorts & Reels • Blurred BG Fill)",
+            "✂️ 9:16 Vertical Portrait (Center Crop Fill)",
+            "🖥️ Original Source Aspect Ratio (Landscape / Source)",
+        ],
+        index=0,
+        horizontal=True,
+        key="trimmer_aspect_ratio_radio",
+        help="Convert horizontal video into vertical 9:16 format for YouTube Shorts, Reels, and TikTok.",
+    )
+    trim_aspect_map = {
+        "📱 9:16 Vertical Portrait (Shorts & Reels • Blurred BG Fill)": "9:16_blurred",
+        "✂️ 9:16 Vertical Portrait (Center Crop Fill)": "9:16_crop",
+        "🖥️ Original Source Aspect Ratio (Landscape / Source)": "original",
+    }
+    selected_trim_aspect = trim_aspect_map[trim_aspect_choice]
+
     st.markdown("")
     if st.button("⚡ Cut & Render Custom High-Quality Clip (With Audio)", type="primary", use_container_width=True):
         if duration < min_clip_req and max_sec > min_clip_req:
             st.error(f"⚠️ Minimum clip duration must be at least 70.0s (currently {duration:.1f}s). Please adjust your selection.")
             return
 
-        custom_clip_name = f"custom_clip_{int(sel_start)}s_to_{int(sel_end)}s.mp4"
+        fmt_tag = "shorts_portrait_9x16" if "9:16" in selected_trim_aspect else "landscape"
+        custom_clip_name = f"custom_clip_{fmt_tag}_{int(sel_start)}s_to_{int(sel_end)}s.mp4"
         custom_clip_path = output_dir / custom_clip_name
-        with st.spinner(f"✂️ Cutting clip from {seconds_to_timecode(sel_start)} to {seconds_to_timecode(sel_end)} ({duration:.1f}s, Audio Preserved)..."):
+        with st.spinner(f"✂️ Cutting clip from {seconds_to_timecode(sel_start)} to {seconds_to_timecode(sel_end)} ({duration:.1f}s, {fmt_tag}, Audio Preserved)..."):
             try:
                 success = extract_single_custom_clip(
                     video_path=video_path,
                     start_seconds=sel_start,
                     end_seconds=sel_end,
                     output_path=custom_clip_path,
+                    aspect_ratio=selected_trim_aspect,
                 )
                 if success and custom_clip_path.exists() and custom_clip_path.stat().st_size > 0:
                     st.session_state["last_custom_clip"] = str(custom_clip_path)
@@ -513,8 +536,10 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
                         "start_tc": seconds_to_timecode(sel_start),
                         "end_tc": seconds_to_timecode(sel_end),
                         "size_mb": round(custom_clip_path.stat().st_size / (1024 * 1024), 2),
+                        "aspect_ratio": selected_trim_aspect,
+                        "is_portrait": "9:16" in selected_trim_aspect,
                     }
-                    st.success(f"✅ Custom clip ready! ({seconds_to_timecode(sel_start)} ➔ {seconds_to_timecode(sel_end)}, {duration:.1f}s, Sound Preserved)")
+                    st.success(f"✅ Custom clip ready! ({seconds_to_timecode(sel_start)} ➔ {seconds_to_timecode(sel_end)}, {duration:.1f}s, {fmt_tag}, Sound Preserved)")
                 else:
                     st.error("⚠️ Clip extraction failed. Please try a slightly different time range.")
             except Exception as clip_err:
@@ -615,6 +640,7 @@ def render_interval_clips_gallery(
                     <div class="filmstrip-sprockets"></div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; flex-wrap: wrap; gap: 6px;">
                         <span class="clip-badge-cut">✂️ CLIP #{c_num:02d} ({c_dur:.1f}s)</span>
+                        <span class="badge-pill badge-extended" style="font-size: 0.68rem; padding: 2px 8px;">📱 9:16 SHORTS READY</span>
                         <span class="audio-sound-active-badge" style="font-size: 0.68rem; padding: 2px 8px;">🔊 SOUND PRESERVED</span>
                         <span style="font-family: monospace; font-size: 0.8rem; color: #cbd5e1;">
                             {c_start_tc} ➔ {c_end_tc}
@@ -755,6 +781,27 @@ def render_fixed_interval_cutter(video_path: Path, metadata: VideoMetadata, outp
     st.session_state["interval_win_end"] = win_end
     st.session_state["interval_chunk_len"] = chunk_len
 
+    # 2b. Aspect Ratio & Portrait Format (Shorts / Reels)
+    st.markdown("###### 📱 Output Aspect Ratio (Portrait Shorts vs Landscape)")
+    int_aspect_choice = st.radio(
+        "Aspect Ratio Layout",
+        options=[
+            "📱 9:16 Vertical Portrait (Shorts & Reels • Blurred BG Fill)",
+            "✂️ 9:16 Vertical Portrait (Center Crop Fill)",
+            "🖥️ Original Source Aspect Ratio (Landscape / Source)",
+        ],
+        index=0,
+        horizontal=True,
+        key="int_aspect_format_radio",
+        help="Turn landscape videos into vertical 9:16 portrait clips for YouTube Shorts, Reels, and TikTok with sound.",
+    )
+    int_aspect_map = {
+        "📱 9:16 Vertical Portrait (Shorts & Reels • Blurred BG Fill)": "9:16_blurred",
+        "✂️ 9:16 Vertical Portrait (Center Crop Fill)": "9:16_crop",
+        "🖥️ Original Source Aspect Ratio (Landscape / Source)": "original",
+    }
+    selected_int_aspect = int_aspect_map[int_aspect_choice]
+
     # 3. Calculate Planned Intervals
     total_window_dur = max(0.1, win_end - win_start)
     intervals = []
@@ -769,6 +816,8 @@ def render_fixed_interval_cutter(video_path: Path, metadata: VideoMetadata, outp
 
     num_clips = len(intervals)
 
+    format_display_label = "📱 9:16 Portrait Shorts" if "9:16" in selected_int_aspect else "🖥️ Original Landscape"
+
     # 4. Interactive Live Breakdown Card
     pills_html = "".join([
         f'<span class="badge-pill badge-standard" style="margin: 3px; font-size: 0.76rem;">'
@@ -782,7 +831,7 @@ def render_fixed_interval_cutter(video_path: Path, metadata: VideoMetadata, outp
         f"""<div style="background: rgba(15, 23, 42, 0.85); border: 1.5px solid rgba(14, 165, 233, 0.35); border-radius: 14px; padding: 16px 20px; margin: 12px 0 16px 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
                 <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Planned Slicing Breakdown</span>
-                <span class="badge-pill badge-extended" style="font-size: 0.74rem;">{num_clips} Total Clips</span>
+                <span class="badge-pill badge-extended" style="font-size: 0.74rem;">{num_clips} Total Clips • {format_display_label}</span>
             </div>
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 10px;">
                 <div>
@@ -794,6 +843,10 @@ def render_fixed_interval_cutter(video_path: Path, metadata: VideoMetadata, outp
                     <span style="font-size: 0.75rem; color: #64748b; display: block;">CHUNK DURATION</span>
                     <span style="font-size: 1.15rem; font-weight: 800; color: #34d399; font-family: monospace;">{chunk_len:.1f}s</span>
                     <span style="font-size: 0.8rem; color: #94a3b8; margin-left: 6px;">(Per clip target)</span>
+                </div>
+                <div>
+                    <span style="font-size: 0.75rem; color: #64748b; display: block;">FORMAT</span>
+                    <span style="font-size: 1.15rem; font-weight: 800; color: #a855f7; font-family: monospace;">{format_display_label}</span>
                 </div>
                 <div>
                     <span style="font-size: 0.75rem; color: #64748b; display: block;">TOTAL SPAN</span>
@@ -810,7 +863,7 @@ def render_fixed_interval_cutter(video_path: Path, metadata: VideoMetadata, outp
 
     # 5. Execute Slicing Button
     st.markdown("")
-    btn_label = f"⚡ Slice Video into {num_clips} Clips of {chunk_len:.0f}s Now (With 100% Audio)"
+    btn_label = f"⚡ Slice Video into {num_clips} Clips of {chunk_len:.0f}s Now ({format_display_label}, Audio Active)"
     if st.button(btn_label, type="primary", use_container_width=True, key="btn_slice_fixed_intervals"):
         if num_clips == 0:
             st.error("⚠️ Invalid time range. Please specify a window longer than 1 second.")
@@ -830,6 +883,7 @@ def render_fixed_interval_cutter(video_path: Path, metadata: VideoMetadata, outp
                 end_seconds=win_end,
                 clip_duration_seconds=chunk_len,
                 output_dir=output_dir,
+                aspect_ratio=selected_int_aspect,
                 progress_callback=on_slice_progress,
             )
 

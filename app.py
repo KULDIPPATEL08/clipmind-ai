@@ -389,6 +389,23 @@ def main() -> None:
                 max_clips = st.slider("Max Video Clips Limit", 5, 50, 25, 5)
                 max_keyframes = st.slider("Max Keyframes Limit", 5, 100, 30, 5)
 
+            pipeline_aspect_choice = st.selectbox(
+                "Scene Clips Layout Format",
+                [
+                    "🖥️ Original Source Aspect Ratio",
+                    "📱 9:16 Vertical Portrait (Shorts & Reels • Blurred BG)",
+                    "✂️ 9:16 Vertical Portrait (Center Crop Fill)",
+                ],
+                index=0,
+                help="Format auto-generated scene clips for standard widescreen or vertical mobile shorts (9:16).",
+            )
+            pipeline_aspect_map = {
+                "🖥️ Original Source Aspect Ratio": "original",
+                "📱 9:16 Vertical Portrait (Shorts & Reels • Blurred BG)": "9:16_blurred",
+                "✂️ 9:16 Vertical Portrait (Center Crop Fill)": "9:16_crop",
+            }
+            pipeline_aspect = pipeline_aspect_map[pipeline_aspect_choice]
+
     # Step 3: Launch Action Bar
     st.markdown("---")
     render_html(
@@ -516,6 +533,7 @@ def main() -> None:
                 scenes=scenes,
                 output_dir=session.clips_dir,
                 max_clips=max_clips,
+                aspect_ratio=pipeline_aspect,
                 progress_callback=on_clip_progress,
             )
             try:
