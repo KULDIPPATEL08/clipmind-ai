@@ -402,17 +402,19 @@ def main() -> None:
             pipeline_aspect_choice = st.selectbox(
                 "Scene Clips Layout Format",
                 [
+                    "🔥 9:16 Viral Reel (Dynamic Zoom-In • Direct Full Screen)",
+                    "✂️ 9:16 Direct Reel (Center Crop Fill)",
+                    "📱 9:16 Cinematic Reel (Blurred BG Fill)",
                     "🖥️ Original Source Aspect Ratio",
-                    "📱 9:16 Vertical Portrait (Shorts & Reels • Blurred BG)",
-                    "✂️ 9:16 Vertical Portrait (Center Crop Fill)",
                 ],
                 index=0,
-                help="Format auto-generated scene clips for standard widescreen or vertical mobile shorts (9:16).",
+                help="Direct Reels dynamic zoom punch-in, full screen vertical crop, blurred pillarbox, or original widescreen.",
             )
             pipeline_aspect_map = {
+                "🔥 9:16 Viral Reel (Dynamic Zoom-In • Direct Full Screen)": "9:16_zoom",
+                "✂️ 9:16 Direct Reel (Center Crop Fill)": "9:16_crop",
+                "📱 9:16 Cinematic Reel (Blurred BG Fill)": "9:16_blurred",
                 "🖥️ Original Source Aspect Ratio": "original",
-                "📱 9:16 Vertical Portrait (Shorts & Reels • Blurred BG)": "9:16_blurred",
-                "✂️ 9:16 Vertical Portrait (Center Crop Fill)": "9:16_crop",
             }
             pipeline_aspect = pipeline_aspect_map[pipeline_aspect_choice]
 

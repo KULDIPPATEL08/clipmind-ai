@@ -113,6 +113,14 @@ def extract_single_custom_clip(
                     "[bg][fg]overlay=(W-w)/2:(H-h)/2"
                 )
                 cmd.extend(["-filter_complex", filter_complex])
+            elif aspect_ratio in ["9:16_zoom", "9:16_reels", "reels_zoom"]:
+                # Direct Viral Reels Dynamic Ken Burns Punch Zoom (1080x1920)
+                vf_zoom = (
+                    "crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2',"
+                    "scale=1080:1920,"
+                    "zoompan=z='min(zoom+0.0015,1.22)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1080x1920:fps=30"
+                )
+                cmd.extend(["-vf", vf_zoom])
             elif aspect_ratio == "9:16_crop":
                 # Full center crop to 9:16 vertical ratio (1080x1920)
                 vf_crop = "crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2',scale=1080:1920"
@@ -168,7 +176,18 @@ def extract_single_custom_clip(
         if not ret or frame is None:
             break
 
-        if aspect_ratio == "9:16_crop":
+        if aspect_ratio in ["9:16_zoom", "9:16_reels", "reels_zoom"]:
+            total_f = max(1, end_frame - start_frame)
+            prog = (curr_f - start_frame) / total_f
+            z_factor = 1.0 + 0.20 * min(1.0, prog)
+            crop_w = int((height * 9 / 16) / z_factor)
+            crop_h = int(height / z_factor)
+            if crop_w < width and crop_h <= height:
+                x1 = max(0, (width - crop_w) // 2)
+                y1 = max(0, (height - crop_h) // 2)
+                frame = frame[y1:y1 + crop_h, x1:x1 + crop_w]
+            frame = cv2.resize(frame, (1080, 1920))
+        elif aspect_ratio == "9:16_crop":
             crop_w = int(height * 9 / 16)
             if crop_w < width:
                 start_x = max(0, (width - crop_w) // 2)
@@ -253,7 +272,14 @@ def extract_scene_clips(
                     "-t", f"{duration:.3f}",
                 ]
 
-                if aspect_ratio == "9:16_blurred":
+                if aspect_ratio in ["9:16_zoom", "9:16_reels", "reels_zoom"]:
+                    vf_zoom = (
+                        "crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2',"
+                        "scale=1080:1920,"
+                        "zoompan=z='min(zoom+0.0015,1.22)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1080x1920:fps=30"
+                    )
+                    cmd.extend(["-vf", vf_zoom])
+                elif aspect_ratio == "9:16_blurred":
                     filter_complex = (
                         "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
                         "boxblur=25:5[bg];"
@@ -336,7 +362,18 @@ def extract_scene_clips(
                 if not ret or frame is None:
                     break
 
-                if aspect_ratio == "9:16_crop":
+                if aspect_ratio in ["9:16_zoom", "9:16_reels", "reels_zoom"]:
+                    total_f = max(1, end_f - start_f)
+                    prog = (curr_frame - start_f) / total_f
+                    z_factor = 1.0 + 0.20 * min(1.0, prog)
+                    crop_w = int((height * 9 / 16) / z_factor)
+                    crop_h = int(height / z_factor)
+                    if crop_w < width and crop_h <= height:
+                        x1 = max(0, (width - crop_w) // 2)
+                        y1 = max(0, (height - crop_h) // 2)
+                        frame = frame[y1:y1 + crop_h, x1:x1 + crop_w]
+                    frame = cv2.resize(frame, (1080, 1920))
+                elif aspect_ratio == "9:16_crop":
                     crop_w = int(height * 9 / 16)
                     if crop_w < width:
                         start_x = max(0, (width - crop_w) // 2)
@@ -428,7 +465,12 @@ def extract_fixed_interval_clips(
     results: List[Dict[str, Any]] = []
     total_count = len(intervals)
 
-    format_tag = "shorts_portrait_9x16" if "9:16" in aspect_ratio else "landscape"
+    if "zoom" in aspect_ratio:
+        format_tag = "viral_reels_zoom_9x16"
+    elif "9:16" in aspect_ratio:
+        format_tag = "shorts_portrait_9x16"
+    else:
+        format_tag = "landscape"
 
     for i, (clip_num, c_start, c_end) in enumerate(intervals, start=1):
         c_dur = c_end - c_start

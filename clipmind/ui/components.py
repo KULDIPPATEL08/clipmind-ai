@@ -494,18 +494,20 @@ def render_precision_clip_trimmer(video_path: Path, metadata: VideoMetadata, out
     trim_aspect_choice = st.radio(
         "Aspect Ratio",
         options=[
-            "📱 9:16 Vertical Portrait (Shorts & Reels • Blurred BG Fill)",
-            "✂️ 9:16 Vertical Portrait (Center Crop Fill)",
+            "🔥 9:16 Viral Reel (Dynamic Zoom-In • Direct Full Screen)",
+            "✂️ 9:16 Direct Reel (Center Crop Fill)",
+            "📱 9:16 Cinematic Reel (Blurred BG Fill)",
             "🖥️ Original Source Aspect Ratio (Landscape / Source)",
         ],
         index=0,
         horizontal=True,
         key="trimmer_aspect_ratio_radio",
-        help="Convert horizontal video into vertical 9:16 format for YouTube Shorts, Reels, and TikTok.",
+        help="Direct Reels dynamic zoom punch-in, full screen vertical crop, blurred pillarbox, or original widescreen.",
     )
     trim_aspect_map = {
-        "📱 9:16 Vertical Portrait (Shorts & Reels • Blurred BG Fill)": "9:16_blurred",
-        "✂️ 9:16 Vertical Portrait (Center Crop Fill)": "9:16_crop",
+        "🔥 9:16 Viral Reel (Dynamic Zoom-In • Direct Full Screen)": "9:16_zoom",
+        "✂️ 9:16 Direct Reel (Center Crop Fill)": "9:16_crop",
+        "📱 9:16 Cinematic Reel (Blurred BG Fill)": "9:16_blurred",
         "🖥️ Original Source Aspect Ratio (Landscape / Source)": "original",
     }
     selected_trim_aspect = trim_aspect_map[trim_aspect_choice]
@@ -635,12 +637,19 @@ def render_interval_clips_gallery(
             c_end_tc = c.get("end_timecode", "00:00:00.000")
             c_size = c.get("size_mb", round(c_path.stat().st_size / (1024 * 1024), 2))
 
+            if "zoom" in c.get("aspect_ratio", "") or "zoom" in c.get("clip_filename", ""):
+                format_badge = '<span class="badge-pill badge-extended" style="font-size: 0.68rem; padding: 2px 8px; background: rgba(236, 72, 153, 0.2); border-color: #ec4899; color: #f472b6;">🔥 DYNAMIC REEL ZOOM</span>'
+            elif c.get("is_portrait", False) or "9x16" in c.get("clip_filename", ""):
+                format_badge = '<span class="badge-pill badge-extended" style="font-size: 0.68rem; padding: 2px 8px;">📱 9:16 SHORTS READY</span>'
+            else:
+                format_badge = '<span class="badge-pill badge-standard" style="font-size: 0.68rem; padding: 2px 8px;">🖥️ LANDSCAPE</span>'
+
             render_html(
                 f"""<div class="film-clip-card">
                     <div class="filmstrip-sprockets"></div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; flex-wrap: wrap; gap: 6px;">
                         <span class="clip-badge-cut">✂️ CLIP #{c_num:02d} ({c_dur:.1f}s)</span>
-                        <span class="badge-pill badge-extended" style="font-size: 0.68rem; padding: 2px 8px;">📱 9:16 SHORTS READY</span>
+                        {format_badge}
                         <span class="audio-sound-active-badge" style="font-size: 0.68rem; padding: 2px 8px;">🔊 SOUND PRESERVED</span>
                         <span style="font-family: monospace; font-size: 0.8rem; color: #cbd5e1;">
                             {c_start_tc} ➔ {c_end_tc}
@@ -782,22 +791,24 @@ def render_fixed_interval_cutter(video_path: Path, metadata: VideoMetadata, outp
     st.session_state["interval_chunk_len"] = chunk_len
 
     # 2b. Aspect Ratio & Portrait Format (Shorts / Reels)
-    st.markdown("###### 📱 Output Aspect Ratio (Portrait Shorts vs Landscape)")
+    st.markdown("###### 📱 Output Aspect Ratio (Direct Reels Zoom vs Landscape)")
     int_aspect_choice = st.radio(
         "Aspect Ratio Layout",
         options=[
-            "📱 9:16 Vertical Portrait (Shorts & Reels • Blurred BG Fill)",
-            "✂️ 9:16 Vertical Portrait (Center Crop Fill)",
+            "🔥 9:16 Viral Reel (Dynamic Zoom-In • Direct Full Screen)",
+            "✂️ 9:16 Direct Reel (Center Crop Fill)",
+            "📱 9:16 Cinematic Reel (Blurred BG Fill)",
             "🖥️ Original Source Aspect Ratio (Landscape / Source)",
         ],
         index=0,
         horizontal=True,
         key="int_aspect_format_radio",
-        help="Turn landscape videos into vertical 9:16 portrait clips for YouTube Shorts, Reels, and TikTok with sound.",
+        help="Direct Reels dynamic zoom punch-in, full screen vertical crop, blurred pillarbox, or original widescreen.",
     )
     int_aspect_map = {
-        "📱 9:16 Vertical Portrait (Shorts & Reels • Blurred BG Fill)": "9:16_blurred",
-        "✂️ 9:16 Vertical Portrait (Center Crop Fill)": "9:16_crop",
+        "🔥 9:16 Viral Reel (Dynamic Zoom-In • Direct Full Screen)": "9:16_zoom",
+        "✂️ 9:16 Direct Reel (Center Crop Fill)": "9:16_crop",
+        "📱 9:16 Cinematic Reel (Blurred BG Fill)": "9:16_blurred",
         "🖥️ Original Source Aspect Ratio (Landscape / Source)": "original",
     }
     selected_int_aspect = int_aspect_map[int_aspect_choice]
@@ -816,7 +827,12 @@ def render_fixed_interval_cutter(video_path: Path, metadata: VideoMetadata, outp
 
     num_clips = len(intervals)
 
-    format_display_label = "📱 9:16 Portrait Shorts" if "9:16" in selected_int_aspect else "🖥️ Original Landscape"
+    if selected_int_aspect == "9:16_zoom":
+        format_display_label = "🔥 9:16 Viral Reel (Dynamic Zoom)"
+    elif "9:16" in selected_int_aspect:
+        format_display_label = "📱 9:16 Portrait Shorts"
+    else:
+        format_display_label = "🖥️ Original Landscape"
 
     # 4. Interactive Live Breakdown Card
     pills_html = "".join([
